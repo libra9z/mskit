@@ -5,7 +5,7 @@ import(
 	"golang.org/x/net/context"
 	"github.com/go-kit/kit/endpoint"
 	"net/http"
-	
+	"errors"
 )
 
 
@@ -126,5 +126,66 @@ func (ms *MicroService)RegisterRestService(path string,rest RestService, middlew
 	ms.Router.Handler("HEAD",path,handler)
 	ms.Router.Handler("OPTIONS",path,handler)
 	ms.Router.Handler("TRACE",path,handler)
+}
+
+
+type RestApi struct{
+
+}
+
+// Get adds a request function to handle GET request.
+func (c *RestApi) Get(r *Request)(interface{},error) {
+	return nil,nil
+}
+
+// Post adds a request function to handle POST request.
+func (c *RestApi) Post(r *Request)(interface{},error) {
+	return nil,nil
+}
+
+// Delete adds a request function to handle DELETE request.
+func (c *RestApi) Delete(r *Request)(interface{},error) {
+	return nil,nil
+}
+
+// Put adds a request function to handle PUT request.
+func (c *RestApi) Put(r *Request)(interface{},error) {
+	return nil,nil
+}
+
+// Head adds a request function to handle HEAD request.
+func (c *RestApi) Head(r *Request)(interface{},error){
+	return nil,nil
+}
+
+// Patch adds a request function to handle PATCH request.
+func (c *RestApi) Patch(r *Request)(interface{},error){
+	return nil,nil
+}
+
+// Options adds a request function to handle OPTIONS request.
+func (c *RestApi) Options(r *Request)(interface{},error){
+	return nil,nil
+}
+
+// Options adds a request function to handle OPTIONS request.
+func (c *RestApi) Trace(r *Request)(interface{},error){
+	return nil,nil
+}
+
+// GetErrorResponse adds a restservice used for endpoint.
+func (c *RestApi)GetErrorResponse() interface{} {
+	resp := NewResponse()
+	resp.Data["ret"] = 1
+	resp.Data["error"] =errors.New("Not allowed.") 
+	return resp
+}
+// DecodeRequest adds a restservice used for endpoint.
+func (c *RestApi)DecodeRequest(*http.Request) (request interface{}, err error){
+	return nil,nil
+}
+// EncodeResponse adds a restservice used for endpoint.
+func (c *RestApi)EncodeResponse(http.ResponseWriter, interface{}) error{
+	return nil
 }
 

@@ -6,8 +6,8 @@ import (
 
 
 type Request struct {
-	value	map[string]interface{}
-	body	[]byte
+	Value	map[string]interface{}
+	Body	[]byte
 	Method	string
 }
 
