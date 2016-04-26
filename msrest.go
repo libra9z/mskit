@@ -1,18 +1,18 @@
 package mskit
 
 import (
-	kitlog "github.com/go-kit/kit/log"
+	//kitlog "github.com/go-kit/kit/log"
 
 	"github.com/libra9z/httprouter"
 	"net"
 	"net/http"
-	"os"
+	//"os"
 	"strconv"
 	"time"
 	"fmt"
 )
 
-var logger kitlog.Logger
+//var logger kitlog.Logger
 
 // App defines msrest application with a new PatternServeMux.
 type MicroService struct {
@@ -33,8 +33,8 @@ var (
 )
 
 func init() {
+	//logger = kitlog.NewLogfmtLogger(os.Stdout)
 	MsRest = NewRestMicroService()
-	logger = kitlog.NewLogfmtLogger(os.Stderr)
 }
 
 // Run Rest MicroService.
@@ -49,7 +49,7 @@ func (ms *MicroService) Serve(params ...string) {
 
 
 	if len(params) < 2 {
-		logger.Log("err: no host port parameters set.")
+		fmt.Printf("err: no host port parameters set.\n")
 		return
 	}
 
@@ -70,25 +70,24 @@ func (ms *MicroService) Serve(params ...string) {
 	}
 
 	// run normal mode
-	logger.Log("server address: ", addr)
 
 	ms.Server.Addr = addr
-	logger.Log("http server Running on %s", ms.Server.Addr)
+	fmt.Printf("http server Running on %s\n", ms.Server.Addr)
 	if isListenTCP4 {
 		ln, err := net.Listen("tcp4", ms.Server.Addr)
 		if err != nil {
-			logger.Log("ListenAndServe: ", err)
+			fmt.Printf("ListenAndServe: %v\n", err)
 			time.Sleep(100 * time.Microsecond)
 			return
 		}
 		if err = ms.Server.Serve(ln); err != nil {
-			logger.Log("ListenAndServe: ", err)
+			fmt.Printf("ListenAndServe: %v\n", err)
 			time.Sleep(100 * time.Microsecond)
 			return
 		}
 	} else {
 		if err := ms.Server.ListenAndServe(); err != nil {
-			logger.Log("ListenAndServe: ", err)
+			fmt.Printf("ListenAndServe: %v\n", err)
 			time.Sleep(100 * time.Microsecond)
 		}
 	}
@@ -100,6 +99,6 @@ func Serve(params ...string) {
 	if MsRest != nil {
 		MsRest.Serve(params...)
 	}else{
-		logger.Log("no rest service avaliable.")
+		fmt.Printf("no rest service avaliable.\n")
 	}
 }

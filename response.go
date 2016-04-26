@@ -5,7 +5,7 @@ import (
 )
 
 type Response struct {
-	Data	map[interface{}]interface{}
+	Data	map[string]interface{}
 }
 
 func NewResponse() *Response {
