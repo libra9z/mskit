@@ -42,6 +42,11 @@ type RestService interface {
 
 func MakeRestEndpoint(svc RestService) endpoint.Endpoint {
 	return func(ctx context.Context, request interface{}) (interface{}, error) {
+		
+		if request == nil {
+			return nil,errors.New("no request avaliable.")
+		}
+		
 		req := request.(Request)
 		
 		var ret interface{}

@@ -2,28 +2,28 @@ package mskit
 
 import (
 	kitlog "github.com/go-kit/kit/log"
-	
-	"net/http"
+
+	"github.com/libra9z/httprouter"
 	"net"
+	"net/http"
 	"os"
 	"strconv"
 	"time"
-	"github.com/libra9z/httprouter"
+	"fmt"
 )
-
 
 var logger kitlog.Logger
 
 // App defines msrest application with a new PatternServeMux.
 type MicroService struct {
-	Router 	*httprouter.Router
-	Server	*http.Server
+	Router *httprouter.Router
+	Server *http.Server
 }
 
 // NewApp returns a new msrest application.
 func NewRestMicroService() *MicroService {
 	router := httprouter.New()
-	ms := &MicroService{Router: router,Server: &http.Server{}}
+	ms := &MicroService{Router: router, Server: &http.Server{}}
 	return ms
 }
 
@@ -32,8 +32,9 @@ var (
 	MsRest *MicroService
 )
 
-func init(){
+func init() {
 	MsRest = NewRestMicroService()
+	logger = kitlog.NewLogfmtLogger(os.Stderr)
 }
 
 // Run Rest MicroService.
@@ -46,7 +47,6 @@ func init(){
  */
 func (ms *MicroService) Serve(params ...string) {
 
-	logger = kitlog.NewLogfmtLogger(os.Stderr)
 
 	if len(params) < 2 {
 		logger.Log("err: no host port parameters set.")
@@ -63,42 +63,43 @@ func (ms *MicroService) Serve(params ...string) {
 		ms.Server.WriteTimeout = time.Duration(ServerTimeOut) * time.Second
 	}
 
-	var isListenTCP4 bool= false
-	
-	if len(params)>3 {
-		isListenTCP4,_ = strconv.ParseBool(params[3])
-	}
-	
-	// run normal mode
-	ms.Server.Addr = addr
+	var isListenTCP4 bool = false
 
-	go func() {
-		ms.Server.Addr = addr
-		logger.Log("http server Running on %s", ms.Server.Addr)
-		if isListenTCP4 {
-			ln, err := net.Listen("tcp4", ms.Server.Addr)
-			if err != nil {
-				logger.Log("ListenAndServe: ", err)
-				time.Sleep(100 * time.Microsecond)
-				return
-			}
-			if err = ms.Server.Serve(ln); err != nil {
-				logger.Log("ListenAndServe: ", err)
-				time.Sleep(100 * time.Microsecond)
-				return
-			}
-		} else {
-			if err := ms.Server.ListenAndServe(); err != nil {
-				logger.Log("ListenAndServe: ", err)
-				time.Sleep(100 * time.Microsecond)
-			}
+	if len(params) > 3 {
+		isListenTCP4, _ = strconv.ParseBool(params[3])
+	}
+
+	// run normal mode
+	logger.Log("server address: ", addr)
+
+	ms.Server.Addr = addr
+	logger.Log("http server Running on %s", ms.Server.Addr)
+	if isListenTCP4 {
+		ln, err := net.Listen("tcp4", ms.Server.Addr)
+		if err != nil {
+			logger.Log("ListenAndServe: ", err)
+			time.Sleep(100 * time.Microsecond)
+			return
 		}
-	}()
+		if err = ms.Server.Serve(ln); err != nil {
+			logger.Log("ListenAndServe: ", err)
+			time.Sleep(100 * time.Microsecond)
+			return
+		}
+	} else {
+		if err := ms.Server.ListenAndServe(); err != nil {
+			logger.Log("ListenAndServe: ", err)
+			time.Sleep(100 * time.Microsecond)
+		}
+	}
+
 }
 
-
 func Serve(params ...string) {
+	fmt.Printf("start rest serve...\n")
 	if MsRest != nil {
 		MsRest.Serve(params...)
+	}else{
+		logger.Log("no rest service avaliable.")
 	}
 }
