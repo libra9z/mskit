@@ -5,6 +5,8 @@ import(
 	"golang.org/x/net/context"
 	"github.com/go-kit/kit/endpoint"
 	"net/http"
+	"io/ioutil"
+	"encoding/json"
 	"errors"
 )
 
@@ -186,11 +188,30 @@ func (c *RestApi)GetErrorResponse() interface{} {
 	return resp
 }
 // DecodeRequest adds a restservice used for endpoint.
-func (c *RestApi)DecodeRequest(*http.Request) (request interface{}, err error){
-	return nil,nil
+func (c *RestApi)DecodeRequest(r *http.Request) (request interface{}, err error){
+	
+	req := Request{Queries : make(map[string]interface{}), }
+	
+	req.Method =  r.Method
+	
+	values := r.URL.Query()
+	
+	for k,v := range values {
+		req.Queries[k] = v
+	}
+	
+	req.Body,err = ioutil.ReadAll(r.Body)
+	
+	return req,nil
 }
 // EncodeResponse adds a restservice used for endpoint.
-func (c *RestApi)EncodeResponse(http.ResponseWriter, interface{}) error{
-	return nil
+func (c *RestApi)EncodeResponse(w http.ResponseWriter,response interface{}) error{
+	
+	if response == nil {
+		response = "{}"
+	}
+	err := json.NewEncoder(w).Encode(response)
+
+	return err
 }
 
