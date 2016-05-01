@@ -8,6 +8,7 @@ import(
 	"io/ioutil"
 	"encoding/json"
 	"errors"
+	"strings"
 )
 
 
@@ -183,7 +184,7 @@ func (c *RestApi) Trace(r *Request)(interface{},error){
 // GetErrorResponse adds a restservice used for endpoint.
 func (c *RestApi)GetErrorResponse() interface{} {
 	resp := NewResponse()
-	resp.Data["ret"] = "1"
+	resp.Data["result"] = 1
 	resp.Data["error"] =errors.New("Not allowed.") 
 	return resp
 }
@@ -194,7 +195,21 @@ func (c *RestApi)DecodeRequest(r *http.Request) (request interface{}, err error)
 	
 	req.Method =  r.Method
 	
+	_,req.Params,_ = MsRest.Router.Lookup(r.Method,r.URL.EscapedPath()) 
+		
 	values := r.URL.Query()
+	
+	accept := r.Header.Get("Accept")
+	ss := strings.Split(accept,";")
+	
+	for _,s := range ss{
+		sv := strings.Split(s,"=")
+		
+		if len(sv)>1 && sv[0]== "version" {
+			req.Version = sv[1]
+		}	
+		
+	} 
 	
 	for k,v := range values {
 		req.Queries[k] = v
@@ -204,12 +219,27 @@ func (c *RestApi)DecodeRequest(r *http.Request) (request interface{}, err error)
 	
 	return req,nil
 }
+
+func (c *RestApi)Prepare(r *Request)(interface{},error){
+	return nil,nil
+} 
+
+/*
+*该方法是在response返回之前调用，用于增加一下个性化的头信息
+*/
+func (c *RestApi)Finish(w *http.ResponseWriter)(error){
+	return nil
+} 
+
 // EncodeResponse adds a restservice used for endpoint.
 func (c *RestApi)EncodeResponse(w http.ResponseWriter,response interface{}) error{
 	
 	if response == nil {
 		response = "{}"
 	}
+	
+	c.Finish(&w)
+	
 	err := json.NewEncoder(w).Encode(response)
 
 	return err

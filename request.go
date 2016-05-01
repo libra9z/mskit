@@ -2,9 +2,13 @@ package mskit
 
 import (
 	"strconv"
+	"github.com/libra9z/httprouter"
+
 	)
 
 type Request struct {
+	Version	string
+	Params 	httprouter.Params		
 	Queries map[string]interface{}
 	Body    []byte
 	Method  string
