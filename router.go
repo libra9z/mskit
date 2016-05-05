@@ -227,7 +227,7 @@ func (c *RestApi)Prepare(r *Request)(interface{},error){
 /*
 *该方法是在response返回之前调用，用于增加一下个性化的头信息
 */
-func (c *RestApi)Finish(w *http.ResponseWriter)(error){
+func (c *RestApi)Finish(w http.ResponseWriter)(error){
 	return nil
 } 
 
@@ -235,10 +235,12 @@ func (c *RestApi)Finish(w *http.ResponseWriter)(error){
 func (c *RestApi)EncodeResponse(w http.ResponseWriter,response interface{}) error{
 	
 	if response == nil {
-		response = "{}"
+		response = ""
 	}
 	
-	c.Finish(&w)
+	w.Header().Set("Allow", "HEAD,GET,PUT,DELETE,OPTIONS,POST");
+	
+	c.Finish(w)
 	
 	err := json.NewEncoder(w).Encode(response)
 

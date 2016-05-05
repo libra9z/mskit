@@ -6,6 +6,7 @@ import (
 
 type Response struct {
 	Data	map[string]interface{}
+	Method	string
 }
 
 func NewResponse() *Response {
