@@ -10,7 +10,7 @@ type Response struct {
 }
 
 func NewResponse() *Response {
-	return new( Response)
+	return &Response{Data:make(map[string]interface{})}
 }
 
 func (r *Response)GetErrorResponse(resp interface{}) interface{}{
