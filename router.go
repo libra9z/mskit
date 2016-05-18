@@ -205,7 +205,7 @@ func (c *RestApi)DecodeRequest(r *http.Request) (request interface{}, err error)
 	for _,s := range ss{
 		sv := strings.Split(s,"=")
 		
-		if len(sv)>1 && strings.Trim(sv[0])== "version" {
+		if len(sv)>1 && strings.TrimSpace(sv[0])== "version" {
 			req.Version = sv[1]
 		}	
 		
