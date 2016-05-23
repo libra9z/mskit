@@ -228,6 +228,14 @@ func (c *RestApi)Prepare(r *Request)(interface{},error){
 *该方法是在response返回之前调用，用于增加一下个性化的头信息
 */
 func (c *RestApi)Finish(w http.ResponseWriter)(error){
+	
+	if w == nil {
+		return errors.New("writer is nil ")
+	}
+	
+	w.Header().Add("Access-Control-Allow-Origin", "*")
+	w.Header().Add("Access-Control-Allow-Methods", "PUT,GET,POST,DELETE,OPTIONS")
+	
 	return nil
 } 
 
