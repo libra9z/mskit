@@ -7,6 +7,7 @@ import (
 	)
 
 type Request struct {
+	IsAuthorized	bool
 	Version	string
 	Params 	httprouter.Params		
 	Queries map[string]interface{}
