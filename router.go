@@ -184,7 +184,7 @@ func (c *RestApi) Trace(r *Request)(interface{},error){
 // GetErrorResponse adds a restservice used for endpoint.
 func (c *RestApi)GetErrorResponse() interface{} {
 	resp := NewResponse()
-	resp.Data["result"] = 1
+	resp.Data["ret"] = 1
 	resp.Data["error"] =errors.New("Not allowed.") 
 	return resp
 }
