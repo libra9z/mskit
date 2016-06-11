@@ -71,3 +71,7 @@ func (r *Request)GetInt64(key string) []int64{
 	}
 	return ret
 }
+
+func (r *Request)SetAuthorized( auth bool ){
+	r.IsAuthorized = auth
+}
