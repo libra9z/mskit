@@ -233,8 +233,8 @@ func (c *RestApi)Finish(w http.ResponseWriter)(error){
 		return errors.New("writer is nil ")
 	}
 	
-	w.Header().Add("Access-Control-Allow-Origin", "*")
-	w.Header().Add("Access-Control-Allow-Methods", "PUT,GET,POST,DELETE,OPTIONS")
+	//w.Header().Add("Access-Control-Allow-Origin", "*")
+	//w.Header().Add("Access-Control-Allow-Methods", "PUT,GET,POST,DELETE,OPTIONS")
 	
 	return nil
 } 
