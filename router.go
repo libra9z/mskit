@@ -217,6 +217,8 @@ func (c *RestApi)DecodeRequest(r *http.Request) (request interface{}, err error)
 	
 	req.Body,err = ioutil.ReadAll(r.Body)
 	
+	req.RemoteAddr = r.RemoteAddr
+	
 	return req,nil
 }
 

@@ -13,6 +13,7 @@ type Request struct {
 	Queries map[string]interface{}
 	Body    []byte
 	Method  string
+	RemoteAddr	string
 }
 
 const(
