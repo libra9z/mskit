@@ -188,7 +188,13 @@ func (c *RestApi)GetErrorResponse() interface{} {
 	resp.Data["error"] =errors.New("Not allowed.") 
 	return resp
 }
+
+
 // DecodeRequest adds a restservice used for endpoint.
+/*
+需要在nginx上配置
+proxy_set_header Remote_addr $remote_addr;
+*/
 func (c *RestApi)DecodeRequest(r *http.Request) (request interface{}, err error){
 	
 	req := Request{Queries : make(map[string]interface{}), }
@@ -217,7 +223,15 @@ func (c *RestApi)DecodeRequest(r *http.Request) (request interface{}, err error)
 	
 	req.Body,err = ioutil.ReadAll(r.Body)
 	
-	req.RemoteAddr = r.RemoteAddr
+	ip := r.Header.Get("Remote_addr")
+	
+    if (ip=="") {
+       req.RemoteAddr = r.RemoteAddr
+    }else{
+    	req.RemoteAddr = ip
+    }
+    
+	
 	
 	return req,nil
 }
