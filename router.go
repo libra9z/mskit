@@ -223,7 +223,7 @@ func (c *RestApi)DecodeRequest(r *http.Request) (request interface{}, err error)
 	
 	req.Body,err = ioutil.ReadAll(r.Body)
 	
-	ip := r.Header.Get("Remote_addr")
+	ip := r.Header.Get("X-Real-IP")
 	
     if (ip=="") {
        req.RemoteAddr = r.RemoteAddr
