@@ -231,8 +231,8 @@ func (c *RestApi)DecodeRequest(r *http.Request) (request interface{}, err error)
     	req.RemoteAddr = ip
     }
     
-	
-	
+	req.OriginRequest = r;
+		
 	return req,nil
 }
 
