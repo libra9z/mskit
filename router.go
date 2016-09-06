@@ -221,8 +221,6 @@ func (c *RestApi)DecodeRequest(r *http.Request) (request interface{}, err error)
 		req.Queries[k] = v
 	}
 	
-	req.Body,err = ioutil.ReadAll(r.Body)
-	
 	ip := r.Header.Get("X-Real-IP")
 	
     if (ip=="") {
@@ -232,7 +230,11 @@ func (c *RestApi)DecodeRequest(r *http.Request) (request interface{}, err error)
     }
     
 	req.OriginRequest = r;
-		
+	
+	if !strings.Contains(r.Header.Get("Content-Type"),"multipart/form-data" ) {
+		req.Body,err = ioutil.ReadAll(r.Body)
+	}
+	
 	return req,nil
 }
 
