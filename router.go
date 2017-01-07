@@ -9,6 +9,9 @@ import (
 	"io/ioutil"
 	"net/http"
 	"strings"
+	stdopentracing "github.com/opentracing/opentracing-go"
+	"github.com/go-kit/kit/log"
+	"github.com/go-kit/kit/tracing/opentracing"
 )
 
 type Middleware func(endpoint.Endpoint) endpoint.Endpoint
@@ -16,6 +19,54 @@ type Middleware func(endpoint.Endpoint) endpoint.Endpoint
 type RestMiddleware struct {
 	Middle Middleware
 	Object interface{}
+}
+
+var (
+	// ErrTwoZeroes is an arbitrary business rule for the Add method.
+	ErrTwoZeroes = errors.New("can't sum two zeroes")
+
+	// ErrIntOverflow protects the Add method. We've decided that this error
+	// indicates a misbehaving service and should count against e.g. circuit
+	// breakers. So, we return it directly in endpoints, to illustrate the
+	// difference. In a real service, this probably wouldn't be the case.
+	ErrIntOverflow = errors.New("integer overflow")
+
+	// ErrMaxSizeExceeded protects the Concat method.
+	ErrMaxSizeExceeded = errors.New("result exceeds maximum size")
+)
+
+func errorEncoder(_ context.Context, err error, w http.ResponseWriter) {
+	code := http.StatusInternalServerError
+	msg := err.Error()
+
+	if e, ok := err.(mshttp.Error); ok {
+		msg = e.Err.Error()
+		switch e.Domain {
+		case mshttp.DomainDecode:
+			code = http.StatusBadRequest
+
+		case mshttp.DomainDo:
+			switch e.Err {
+			case ErrTwoZeroes, ErrMaxSizeExceeded, ErrIntOverflow:
+				code = http.StatusBadRequest
+			}
+		}
+	}
+
+	w.WriteHeader(code)
+	json.NewEncoder(w).Encode(errorWrapper{Error: msg})
+}
+
+func errorDecoder(r *http.Response) error {
+	var w errorWrapper
+	if err := json.NewDecoder(r.Body).Decode(&w); err != nil {
+		return err
+	}
+	return errors.New(w.Error)
+}
+
+type errorWrapper struct {
+	Error string `json:"error"`
 }
 
 func (rm *RestMiddleware) GetMiddleware() func(interface{}) Middleware {
@@ -78,7 +129,7 @@ func MakeRestEndpoint(svc RestService) endpoint.Endpoint {
 	}
 }
 
-func RegisterRestService(path string, rest RestService, middlewares ...RestMiddleware) {
+func RegisterRestService(path string, rest RestService, tracer stdopentracing.Tracer, logger log.Logger,middlewares ...RestMiddleware) {
 	ctx := context.Background()
 
 	svc := MakeRestEndpoint(rest)
@@ -87,11 +138,17 @@ func RegisterRestService(path string, rest RestService, middlewares ...RestMiddl
 		svc = middlewares[i].GetMiddleware()(middlewares[i].Object)(svc)
 	}
 
+	options := []mshttp.ServerOption{
+		mshttp.ServerErrorEncoder(errorEncoder),
+		mshttp.ServerErrorLogger(logger),
+	}
+
 	handler := mshttp.NewServer(
 		ctx,
 		svc,
 		rest.DecodeRequest,
 		rest.EncodeResponse,
+		append(options, mshttp.ServerBefore(opentracing.FromHTTPRequest(tracer, path, logger)))...,
 	)
 
 	MsRest.Router.Handler("GET", path, handler)
@@ -104,7 +161,7 @@ func RegisterRestService(path string, rest RestService, middlewares ...RestMiddl
 	MsRest.Router.Handler("TRACE", path, handler)
 }
 
-func (ms *MicroService) RegisterRestService(path string, rest RestService, middlewares ...RestMiddleware) {
+func (ms *MicroService) RegisterRestService(path string, rest RestService, tracer stdopentracing.Tracer, logger log.Logger, middlewares ...RestMiddleware) {
 	ctx := context.Background()
 
 	svc := MakeRestEndpoint(rest)
@@ -113,11 +170,17 @@ func (ms *MicroService) RegisterRestService(path string, rest RestService, middl
 		svc = middlewares[i].GetMiddleware()(middlewares[i].Object)(svc)
 	}
 
+	options := []mshttp.ServerOption{
+		mshttp.ServerErrorEncoder(errorEncoder),
+		mshttp.ServerErrorLogger(logger),
+	}
+
 	handler := mshttp.NewServer(
 		ctx,
 		svc,
 		rest.DecodeRequest,
 		rest.EncodeResponse,
+		append(options, mshttp.ServerBefore(opentracing.FromHTTPRequest(tracer, path, logger)))...,
 	)
 
 	ms.Router.Handler("GET", path, handler)
