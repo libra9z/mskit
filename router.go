@@ -22,9 +22,6 @@ type RestMiddleware struct {
 }
 
 var (
-	// ErrTwoZeroes is an arbitrary business rule for the Add method.
-	ErrTwoZeroes = errors.New("can't sum two zeroes")
-
 	// ErrIntOverflow protects the Add method. We've decided that this error
 	// indicates a misbehaving service and should count against e.g. circuit
 	// breakers. So, we return it directly in endpoints, to illustrate the
@@ -47,7 +44,7 @@ func errorEncoder(_ context.Context, err error, w http.ResponseWriter) {
 
 		case mshttp.DomainDo:
 			switch e.Err {
-			case ErrTwoZeroes, ErrMaxSizeExceeded, ErrIntOverflow:
+			case ErrMaxSizeExceeded, ErrIntOverflow:
 				code = http.StatusBadRequest
 			}
 		}
@@ -161,38 +158,6 @@ func RegisterRestService(path string, rest RestService,middlewares ...RestMiddle
 	MsRest.Router.Handler("TRACE", path, handler)
 }
 
-func (ms *MicroService) RegisterRestService(path string, rest RestService, middlewares ...RestMiddleware) {
-	ctx := context.Background()
-
-	svc := MakeRestEndpoint(rest)
-
-	for i := 0; i < len(middlewares); i++ {
-		svc = middlewares[i].GetMiddleware()(middlewares[i].Object)(svc)
-	}
-
-	options := []mshttp.ServerOption{
-		mshttp.ServerErrorEncoder(errorEncoder),
-	}
-
-	handler := mshttp.NewServer(
-		ctx,
-		svc,
-		rest.DecodeRequest,
-		rest.EncodeResponse,
-		options...,
-	)
-
-	ms.Router.Handler("GET", path, handler)
-	ms.Router.Handler("POST", path, handler)
-	ms.Router.Handler("PUT", path, handler)
-	ms.Router.Handler("PATCH", path, handler)
-	ms.Router.Handler("DELETE", path, handler)
-	ms.Router.Handler("HEAD", path, handler)
-	ms.Router.Handler("OPTIONS", path, handler)
-	ms.Router.Handler("TRACE", path, handler)
-}
-
-
 func RegisterServiceWithTracer(path string, rest RestService, tracer stdopentracing.Tracer, logger log.Logger,middlewares ...RestMiddleware) {
 	ctx := context.Background()
 
@@ -229,6 +194,39 @@ func RegisterServiceWithTracer(path string, rest RestService, tracer stdopentrac
 	MsRest.Router.Handler("OPTIONS", path, handler)
 	MsRest.Router.Handler("TRACE", path, handler)
 }
+
+
+func (ms *MicroService) RegisterRestService(path string, rest RestService, middlewares ...RestMiddleware) {
+	ctx := context.Background()
+
+	svc := MakeRestEndpoint(rest)
+
+	for i := 0; i < len(middlewares); i++ {
+		svc = middlewares[i].GetMiddleware()(middlewares[i].Object)(svc)
+	}
+
+	options := []mshttp.ServerOption{
+		mshttp.ServerErrorEncoder(errorEncoder),
+	}
+
+	handler := mshttp.NewServer(
+		ctx,
+		svc,
+		rest.DecodeRequest,
+		rest.EncodeResponse,
+		options...,
+	)
+
+	ms.Router.Handler("GET", path, handler)
+	ms.Router.Handler("POST", path, handler)
+	ms.Router.Handler("PUT", path, handler)
+	ms.Router.Handler("PATCH", path, handler)
+	ms.Router.Handler("DELETE", path, handler)
+	ms.Router.Handler("HEAD", path, handler)
+	ms.Router.Handler("OPTIONS", path, handler)
+	ms.Router.Handler("TRACE", path, handler)
+}
+
 
 func (ms *MicroService) RegisterServiceWithTracer(path string, rest RestService, tracer stdopentracing.Tracer, logger log.Logger, middlewares ...RestMiddleware) {
 	ctx := context.Background()
