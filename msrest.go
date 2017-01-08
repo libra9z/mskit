@@ -55,7 +55,6 @@ func (ms *MicroService) Serve(params ...string) {
 
 	addr := params[0] + ":" + params[1]
 
-	ms.Server.Handler = ms.Router
 
 	if len(params) > 2 {
 		ServerTimeOut, _ := strconv.ParseInt(params[2], 10, 64)
@@ -71,6 +70,7 @@ func (ms *MicroService) Serve(params ...string) {
 
 	// run normal mode
 
+	ms.Server.Handler = ms.Router
 	ms.Server.Addr = addr
 	fmt.Printf("http server Running on %s\n", ms.Server.Addr)
 	if isListenTCP4 {

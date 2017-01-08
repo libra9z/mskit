@@ -137,6 +137,7 @@ func RegisterRestService(path string, rest RestService, tracer stdopentracing.Tr
 	for i := 0; i < len(middlewares); i++ {
 		svc = middlewares[i].GetMiddleware()(middlewares[i].Object)(svc)
 	}
+	svc = opentracing.TraceServer(tracer, path)(svc)
 
 	options := []mshttp.ServerOption{
 		mshttp.ServerErrorEncoder(errorEncoder),
@@ -169,6 +170,8 @@ func (ms *MicroService) RegisterRestService(path string, rest RestService, trace
 	for i := 0; i < len(middlewares); i++ {
 		svc = middlewares[i].GetMiddleware()(middlewares[i].Object)(svc)
 	}
+
+	svc = opentracing.TraceServer(tracer, path)(svc)
 
 	options := []mshttp.ServerOption{
 		mshttp.ServerErrorEncoder(errorEncoder),
