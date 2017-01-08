@@ -129,7 +129,71 @@ func MakeRestEndpoint(svc RestService) endpoint.Endpoint {
 	}
 }
 
-func RegisterRestService(path string, rest RestService, tracer stdopentracing.Tracer, logger log.Logger,middlewares ...RestMiddleware) {
+func RegisterRestService(path string, rest RestService,middlewares ...RestMiddleware) {
+	ctx := context.Background()
+
+	svc := MakeRestEndpoint(rest)
+
+	for i := 0; i < len(middlewares); i++ {
+		svc = middlewares[i].GetMiddleware()(middlewares[i].Object)(svc)
+	}
+
+	options := []mshttp.ServerOption{
+		mshttp.ServerErrorEncoder(errorEncoder),
+	}
+
+
+	handler := mshttp.NewServer(
+		ctx,
+		svc,
+		rest.DecodeRequest,
+		rest.EncodeResponse,
+		options...,
+	)
+
+	MsRest.Router.Handler("GET", path, handler)
+	MsRest.Router.Handler("POST", path, handler)
+	MsRest.Router.Handler("PUT", path, handler)
+	MsRest.Router.Handler("PATCH", path, handler)
+	MsRest.Router.Handler("DELETE", path, handler)
+	MsRest.Router.Handler("HEAD", path, handler)
+	MsRest.Router.Handler("OPTIONS", path, handler)
+	MsRest.Router.Handler("TRACE", path, handler)
+}
+
+func (ms *MicroService) RegisterRestService(path string, rest RestService, middlewares ...RestMiddleware) {
+	ctx := context.Background()
+
+	svc := MakeRestEndpoint(rest)
+
+	for i := 0; i < len(middlewares); i++ {
+		svc = middlewares[i].GetMiddleware()(middlewares[i].Object)(svc)
+	}
+
+	options := []mshttp.ServerOption{
+		mshttp.ServerErrorEncoder(errorEncoder),
+	}
+
+	handler := mshttp.NewServer(
+		ctx,
+		svc,
+		rest.DecodeRequest,
+		rest.EncodeResponse,
+		options...,
+	)
+
+	ms.Router.Handler("GET", path, handler)
+	ms.Router.Handler("POST", path, handler)
+	ms.Router.Handler("PUT", path, handler)
+	ms.Router.Handler("PATCH", path, handler)
+	ms.Router.Handler("DELETE", path, handler)
+	ms.Router.Handler("HEAD", path, handler)
+	ms.Router.Handler("OPTIONS", path, handler)
+	ms.Router.Handler("TRACE", path, handler)
+}
+
+
+func RegisterServiceWithTracer(path string, rest RestService, tracer stdopentracing.Tracer, logger log.Logger,middlewares ...RestMiddleware) {
 	ctx := context.Background()
 
 	svc := MakeRestEndpoint(rest)
@@ -166,7 +230,7 @@ func RegisterRestService(path string, rest RestService, tracer stdopentracing.Tr
 	MsRest.Router.Handler("TRACE", path, handler)
 }
 
-func (ms *MicroService) RegisterRestService(path string, rest RestService, tracer stdopentracing.Tracer, logger log.Logger, middlewares ...RestMiddleware) {
+func (ms *MicroService) RegisterServiceWithTracer(path string, rest RestService, tracer stdopentracing.Tracer, logger log.Logger, middlewares ...RestMiddleware) {
 	ctx := context.Background()
 
 	svc := MakeRestEndpoint(rest)
