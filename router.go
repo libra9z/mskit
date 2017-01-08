@@ -137,21 +137,23 @@ func RegisterRestService(path string, rest RestService, tracer stdopentracing.Tr
 	for i := 0; i < len(middlewares); i++ {
 		svc = middlewares[i].GetMiddleware()(middlewares[i].Object)(svc)
 	}
-	if tracer != nil {
-		svc = opentracing.TraceServer(tracer, path)(svc)
-	}
 
 	options := []mshttp.ServerOption{
 		mshttp.ServerErrorEncoder(errorEncoder),
 		mshttp.ServerErrorLogger(logger),
 	}
+	if tracer != nil {
+		svc = opentracing.TraceServer(tracer, path)(svc)
+		options = append(options, mshttp.ServerBefore(opentracing.FromHTTPRequest(tracer, path, logger)))
+	}
+
 
 	handler := mshttp.NewServer(
 		ctx,
 		svc,
 		rest.DecodeRequest,
 		rest.EncodeResponse,
-		append(options, mshttp.ServerBefore(opentracing.FromHTTPRequest(tracer, path, logger)))...,
+		options...,
 	)
 
 	MsRest.Router.Handler("GET", path, handler)
@@ -172,13 +174,14 @@ func (ms *MicroService) RegisterRestService(path string, rest RestService, trace
 	for i := 0; i < len(middlewares); i++ {
 		svc = middlewares[i].GetMiddleware()(middlewares[i].Object)(svc)
 	}
-	if tracer != nil {
-		svc = opentracing.TraceServer(tracer, path)(svc)
-	}
 
 	options := []mshttp.ServerOption{
 		mshttp.ServerErrorEncoder(errorEncoder),
 		mshttp.ServerErrorLogger(logger),
+	}
+	if tracer != nil {
+		svc = opentracing.TraceServer(tracer, path)(svc)
+		options = append(options, mshttp.ServerBefore(opentracing.FromHTTPRequest(tracer, path, logger)))
 	}
 
 	handler := mshttp.NewServer(
@@ -186,7 +189,7 @@ func (ms *MicroService) RegisterRestService(path string, rest RestService, trace
 		svc,
 		rest.DecodeRequest,
 		rest.EncodeResponse,
-		append(options, mshttp.ServerBefore(opentracing.FromHTTPRequest(tracer, path, logger)))...,
+		options...,
 	)
 
 	ms.Router.Handler("GET", path, handler)
