@@ -5,7 +5,7 @@ import (
 	"errors"
 	"github.com/go-kit/kit/endpoint"
 	mshttp "github.com/go-kit/kit/transport/http"
-	"golang.org/x/net/context"
+	"context"
 	"io/ioutil"
 	"net/http"
 	"strings"
@@ -22,6 +22,9 @@ type RestMiddleware struct {
 }
 
 var (
+	// ErrTwoZeroes is an arbitrary business rule for the Add method.
+	ErrTwoZeroes = errors.New("can't sum two zeroes")
+
 	// ErrIntOverflow protects the Add method. We've decided that this error
 	// indicates a misbehaving service and should count against e.g. circuit
 	// breakers. So, we return it directly in endpoints, to illustrate the
@@ -36,19 +39,12 @@ func errorEncoder(_ context.Context, err error, w http.ResponseWriter) {
 	code := http.StatusInternalServerError
 	msg := err.Error()
 
-	if e, ok := err.(mshttp.Error); ok {
-		msg = e.Err.Error()
-		switch e.Domain {
-		case mshttp.DomainDecode:
-			code = http.StatusBadRequest
 
-		case mshttp.DomainDo:
-			switch e.Err {
-			case ErrMaxSizeExceeded, ErrIntOverflow:
-				code = http.StatusBadRequest
-			}
-		}
+	switch err {
+	case ErrTwoZeroes, ErrMaxSizeExceeded, ErrIntOverflow:
+		code = http.StatusBadRequest
 	}
+
 
 	w.WriteHeader(code)
 	json.NewEncoder(w).Encode(errorWrapper{Error: msg})
@@ -127,7 +123,7 @@ func MakeRestEndpoint(svc RestService) endpoint.Endpoint {
 }
 
 func RegisterRestService(path string, rest RestService,middlewares ...RestMiddleware) {
-	ctx := context.Background()
+	//ctx := context.Background()
 
 	svc := MakeRestEndpoint(rest)
 
@@ -141,7 +137,7 @@ func RegisterRestService(path string, rest RestService,middlewares ...RestMiddle
 
 
 	handler := mshttp.NewServer(
-		ctx,
+		//ctx,
 		svc,
 		rest.DecodeRequest,
 		rest.EncodeResponse,
@@ -159,7 +155,7 @@ func RegisterRestService(path string, rest RestService,middlewares ...RestMiddle
 }
 
 func RegisterServiceWithTracer(path string, rest RestService, tracer stdopentracing.Tracer, logger log.Logger,middlewares ...RestMiddleware) {
-	ctx := context.Background()
+	//ctx := context.Background()
 
 	svc := MakeRestEndpoint(rest)
 
@@ -178,7 +174,7 @@ func RegisterServiceWithTracer(path string, rest RestService, tracer stdopentrac
 
 
 	handler := mshttp.NewServer(
-		ctx,
+		//ctx,
 		svc,
 		rest.DecodeRequest,
 		rest.EncodeResponse,
@@ -197,7 +193,7 @@ func RegisterServiceWithTracer(path string, rest RestService, tracer stdopentrac
 
 
 func (ms *MicroService) RegisterRestService(path string, rest RestService, middlewares ...RestMiddleware) {
-	ctx := context.Background()
+	//ctx := context.Background()
 
 	svc := MakeRestEndpoint(rest)
 
@@ -210,7 +206,7 @@ func (ms *MicroService) RegisterRestService(path string, rest RestService, middl
 	}
 
 	handler := mshttp.NewServer(
-		ctx,
+		//ctx,
 		svc,
 		rest.DecodeRequest,
 		rest.EncodeResponse,
@@ -229,7 +225,7 @@ func (ms *MicroService) RegisterRestService(path string, rest RestService, middl
 
 
 func (ms *MicroService) RegisterServiceWithTracer(path string, rest RestService, tracer stdopentracing.Tracer, logger log.Logger, middlewares ...RestMiddleware) {
-	ctx := context.Background()
+	//ctx := context.Background()
 
 	svc := MakeRestEndpoint(rest)
 
@@ -247,7 +243,7 @@ func (ms *MicroService) RegisterServiceWithTracer(path string, rest RestService,
 	}
 
 	handler := mshttp.NewServer(
-		ctx,
+		//ctx,
 		svc,
 		rest.DecodeRequest,
 		rest.EncodeResponse,
