@@ -72,7 +72,7 @@ func (ms *MicroService) Serve(params ...string) {
 
 	ms.Server.Handler = ms.Router
 	ms.Server.Addr = addr
-	fmt.Printf("http server Running on %s\n", ms.Server.Addr)
+	fmt.Printf("http server Running on : %s\n", ms.Server.Addr)
 	if isListenTCP4 {
 		ln, err := net.Listen("tcp4", ms.Server.Addr)
 		if err != nil {
@@ -95,7 +95,7 @@ func (ms *MicroService) Serve(params ...string) {
 }
 
 func Serve(params ...string) {
-	fmt.Printf("start rest serve...\n")
+	//fmt.Printf("start rest serve...\n")
 	if MsRest != nil {
 		MsRest.Serve(params...)
 	}else{
