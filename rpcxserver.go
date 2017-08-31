@@ -6,7 +6,7 @@ import (
 	"github.com/smallnest/rpcx"
 	"github.com/smallnest/rpcx/plugin"
 	"context"
-	"github.com/getlantern/errors"
+	"errors"
 	"encoding/json"
 	"sas/sascomm/constvar"
 	"fmt"
