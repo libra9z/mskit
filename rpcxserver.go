@@ -6,10 +6,10 @@ import (
 	"github.com/smallnest/rpcx"
 	"github.com/smallnest/rpcx/plugin"
 	"context"
-	"errors"
-	"encoding/json"
-	"sas/sascomm/constvar"
 	"fmt"
+	"encoding/json"
+	"errors"
+	"sas/sascomm/constvar"
 )
 
 type Method func(interface{})(interface{},error)
@@ -37,9 +37,148 @@ type RpcService interface {
 	Services(ctx context.Context,req *RpcRequest,ret *RpcResponse) error
 }
 
-type JSONRpc struct {}
+type RpcServiceName interface {
+	SetServiceName(string)
+	GetServiceName() string
+}
 
-func ( jr *JSONRpc ) Services( ctx context.Context,req *RpcRequest,ret *RpcResponse ) error {
+/*
+	参数network的定义如下：
+	kcp：
+	reuseport：
+	quic
+	default   tcp
+*/
+func InitRpcServerWithConsul(network,serviceAddr string,consulAddr string) {
+
+	defautlServer = NewRpcServerWithConsul(network,serviceAddr,consulAddr)
+	if defautlServer == nil {
+		fmt.Printf("cannot initial rpc server.\n")
+	}
+}
+
+func RpcRegisterService(servName RpcServiceName,service RpcService,metadata string) {
+	if defautlServer != nil && service != nil {
+		defautlServer.RegisterService(servName,service,metadata)
+	}
+}
+
+func RpcRegisterDefaultService(servName RpcServiceName,service RpcService) {
+	if defautlServer != nil {
+		defautlServer.RegisterDefaultService(servName,service)
+	}else{
+		fmt.Printf("register default services failed.\n")
+	}
+
+
+}
+
+func RpcRegisterDefaultMethod(methodName string,m Method) {
+
+	if defautlServer != nil {
+		defautlServer.RegisterMethod(methodName,m)
+	}else{
+		fmt.Printf("register default method failed.\n")
+	}
+
+
+}
+
+func RpcGetMethodByName(name string) Method {
+
+	if defautlServer != nil {
+		return defautlServer.GetMethodByName(name)
+	}
+
+	return nil
+}
+
+func RpcServe(){
+
+	if defautlServer != nil {
+		defautlServer.Serve()
+	}else{
+		fmt.Printf("cannot start Rpcx server,default server is nil.\n")
+	}
+}
+
+
+func NewRpcServerWithConsul(network,serviceAddr string,consulAddr string) *RpcServer {
+
+	s := new(RpcServer)
+
+	s.Server = rpcx.NewServer()
+
+	if network == "" {
+		network = "tcp"
+	}
+
+	s.Network = network
+	s.ServiceAddr = serviceAddr
+	s.Methods = make(map[string]Method)
+
+	p :=  &plugin.ConsulRegisterPlugin{
+		ServiceAddress: network +"@" + serviceAddr,
+		ConsulAddress:  consulAddr,
+		UpdateInterval: time.Second,
+	}
+
+	p.Start()
+	s.Server.PluginContainer.Add(p)
+
+	return s
+}
+
+func ( s *RpcServer ) RegisterService(servName RpcServiceName,service RpcService,metadata string) {
+	if service != nil {
+		s.Server.RegisterName(servName.GetServiceName(),service,metadata)
+	}
+}
+
+func ( s *RpcServer ) RegisterDefaultService(servName RpcServiceName,service RpcService) {
+
+	if service != nil {
+		s.Server.RegisterName(servName.GetServiceName(),service)
+	}
+}
+
+func ( s *RpcServer )Serve() error {
+
+	fmt.Printf("rpcx server running on : %s\n",s.ServiceAddr)
+	err :=s.Server.Serve(s.Network,s.ServiceAddr)
+
+	if err != nil {
+		fmt.Printf("cannot run rpcx server: %v\n",err)
+		return err
+	}
+	return nil
+}
+
+func ( s *RpcServer ) RegisterMethod(methodName string,m Method) {
+
+	if methodName == "" {
+		return
+	}
+	s.Methods[methodName] = m
+}
+
+func ( s *RpcServer ) GetMethodByName(name string) Method {
+
+	if name == "" {
+		return nil
+	}
+
+	if 	m ,ok := s.Methods[name];ok {
+		return m
+	}
+
+	return nil
+}
+
+
+type DefaultJSONRpc struct {}
+
+func ( jr *DefaultJSONRpc ) Services( ctx context.Context,req *RpcRequest,ret *RpcResponse ) error {
 
 	var err error
 	if req == nil || ret == nil {
@@ -113,133 +252,3 @@ func ( jr *JSONRpc ) Services( ctx context.Context,req *RpcRequest,ret *RpcRespo
 	return nil
 }
 
-
-
-/*
-	参数network的定义如下：
-	kcp：
-	reuseport：
-	quic
-	default   tcp
-*/
-func InitRpcServerWithConsul(network,serviceAddr string,consulAddr string) {
-
-	defautlServer = NewRpcServerWithConsul(network,serviceAddr,consulAddr)
-	if defautlServer == nil {
-		fmt.Printf("cannot initial rpc server.\n")
-	}
-}
-
-func RpcRegisterService(name string,service interface{},metadata string) {
-	if defautlServer != nil {
-		defautlServer.RegisterService(name,service,metadata)
-	}
-}
-
-func RpcRegisterDefaultService() {
-	if defautlServer != nil {
-		defautlServer.RegisterDefaultService()
-	}else{
-		fmt.Printf("register default services failed.\n")
-	}
-
-
-}
-
-func RpcRegisterDefaultMethod(methodName string,m Method) {
-
-	if defautlServer != nil {
-		defautlServer.RegisterMethod(methodName,m)
-	}else{
-		fmt.Printf("register default method failed.\n")
-	}
-
-
-}
-
-func RpcGetMethodByName(name string) Method {
-
-	if defautlServer != nil {
-		return defautlServer.GetMethodByName(name)
-	}
-
-	return nil
-}
-
-func RpcServe(){
-
-	if defautlServer != nil {
-		defautlServer.Serve()
-	}else{
-		fmt.Printf("cannot start Rpcx server,default server is nil.\n")
-	}
-}
-
-
-func NewRpcServerWithConsul(network,serviceAddr string,consulAddr string) *RpcServer {
-
-	s := new(RpcServer)
-
-	s.Server = rpcx.NewServer()
-
-	if network == "" {
-		network = "tcp"
-	}
-
-	s.Network = network
-	s.ServiceAddr = serviceAddr
-	s.Methods = make(map[string]Method)
-
-	p :=  &plugin.ConsulRegisterPlugin{
-		ServiceAddress: network +"@" + serviceAddr,
-		ConsulAddress:  consulAddr,
-		UpdateInterval: time.Second,
-	}
-
-	p.Start()
-	s.Server.PluginContainer.Add(p)
-
-	return s
-}
-
-func ( s *RpcServer ) RegisterService(name string,service interface{},metadata string) {
-	s.Server.RegisterName(name,service,metadata)
-}
-
-func ( s *RpcServer ) RegisterDefaultService() {
-
-	s.Server.RegisterName("JSONRpc",new(JSONRpc))
-}
-
-func ( s *RpcServer )Serve() error {
-
-	fmt.Printf("rpcx server running on : %s\n",s.ServiceAddr)
-	err :=s.Server.Serve(s.Network,s.ServiceAddr)
-
-	if err != nil {
-		fmt.Printf("cannot run rpcx server: %v\n",err)
-		return err
-	}
-	return nil
-}
-
-func ( s *RpcServer ) RegisterMethod(methodName string,m Method) {
-
-	if methodName == "" {
-		return
-	}
-	s.Methods[methodName] = m
-}
-
-func ( s *RpcServer ) GetMethodByName(name string) Method {
-
-	if name == "" {
-		return nil
-	}
-
-	if 	m ,ok := s.Methods[name];ok {
-		return m
-	}
-
-	return nil
-}
