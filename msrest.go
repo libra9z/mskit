@@ -102,3 +102,11 @@ func Serve(params ...string) {
 		fmt.Printf("no rest service avaliable.\n")
 	}
 }
+
+func ServeFiles(path string,root http.FileSystem) {
+	if MsRest != nil {
+		MsRest.Router.ServeFiles(path,root)
+	}else{
+		fmt.Printf("no rest service avaliable.\n")
+	}
+}
