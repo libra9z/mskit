@@ -9,8 +9,13 @@ import (
 	"fmt"
 	"encoding/json"
 	"errors"
-	"sas/sascomm/constvar"
+
 )
+
+const (
+	JSONRPC_ERR_METHOD_NOT_FOUND = 32601
+)
+
 
 type Method func(interface{})(interface{},error)
 type RpcServer struct {
@@ -221,7 +226,7 @@ func ( jr *DefaultJSONRpc ) Services( ctx context.Context,req *RpcRequest,ret *R
 				}
 			}
 		}else{
-			em["code"] = constvar.JSONRPC_ERR_METHOD_NOT_FOUND
+			em["code"] = JSONRPC_ERR_METHOD_NOT_FOUND
 			em["message"] = "该方法不存在或者无效"
 			err = errors.New("method not found")
 		}
