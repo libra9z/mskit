@@ -209,16 +209,13 @@ func ( jr *DefaultJSONRpc ) Services( ctx context.Context,req *RpcRequest,ret *R
 	if vs["method"] != nil {
 		method := vs["method"].(string)
 		fmt.Printf("call method : %s\n",method)
-		if method != "foobar" {
-			if vs["params"] != nil {
-				params := vs["params"].(interface{})
-				if params != nil {
-					function := RpcGetMethodByName(method)
-					if function != nil {
-						result ,err = function(params)
-						fmt.Printf("result=%v\n",result)
-					}
-				}
+		if method != "" {
+			function := RpcGetMethodByName(method)
+			if function != nil {
+				result ,err = function(vs["params"] )
+				fmt.Printf("result=%v\n",result)
+			}else{
+				fmt.Errorf("没有找对对应的方法。")
 			}
 		}else{
 			em["code"] = constvar.JSONRPC_ERR_METHOD_NOT_FOUND
