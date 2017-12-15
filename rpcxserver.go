@@ -1,8 +1,6 @@
 package mskit
 
 import (
-	//"time"
-
 	"github.com/smallnest/rpcx/server"
 	"context"
 	"fmt"
@@ -10,6 +8,7 @@ import (
 	"errors"
 	//metrics "github.com/rcrowley/go-metrics"
 	//"github.com/smallnest/rpcx/serverplugin"
+	//"time"
 )
 
 const (
@@ -56,7 +55,7 @@ type RpcServiceName interface {
 */
 func InitRpcServerWithConsul(network,serviceAddr string,consulAddr string,basepath string) {
 
-	//defautlServer = NewRpcServerWithConsul(network,serviceAddr,consulAddr,basepath)
+	defautlServer = NewRpcServerWithConsul(network,serviceAddr,consulAddr,basepath)
 	if defautlServer == nil {
 		fmt.Printf("cannot initial rpc server.\n")
 	}
@@ -64,13 +63,13 @@ func InitRpcServerWithConsul(network,serviceAddr string,consulAddr string,basepa
 
 func RpcRegisterService(servName RpcServiceName,service RpcService,metadata string) {
 	if defautlServer != nil && service != nil {
-		//defautlServer.RegisterService(servName,service,metadata)
+		defautlServer.RegisterService(servName,service,metadata)
 	}
 }
 
 func RpcRegisterDefaultService(servName RpcServiceName,service RpcService,meta string) {
 	if defautlServer != nil {
-		//defautlServer.RegisterDefaultService(servName,service,meta)
+		defautlServer.RegisterDefaultService(servName,service,meta)
 	}else{
 		fmt.Printf("register default services failed.\n")
 	}

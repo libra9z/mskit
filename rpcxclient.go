@@ -2,8 +2,8 @@ package mskit
 
 import (
 	//"context"
-	//"fmt"
 	//"github.com/smallnest/rpcx/client"
+	//"fmt"
 )
 
 
@@ -21,7 +21,7 @@ func RpcCallWithConsul(basepath,consuladdr,serviceName,methodName string,selectM
 	//} else {
 	//	fmt.Printf("%s: call success.\n", serviceMethod )
 	//}
-	//
+
 
 	return nil
 }
