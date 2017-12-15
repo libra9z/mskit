@@ -1,15 +1,15 @@
 package mskit
 
 import (
-	"time"
+	//"time"
 
-	"github.com/smallnest/rpcx"
-	"github.com/smallnest/rpcx/plugin"
+	"github.com/smallnest/rpcx/server"
 	"context"
 	"fmt"
 	"encoding/json"
 	"errors"
-
+	//metrics "github.com/rcrowley/go-metrics"
+	//"github.com/smallnest/rpcx/serverplugin"
 )
 
 const (
@@ -19,7 +19,7 @@ const (
 
 type Method func(interface{})(interface{},error)
 type RpcServer struct {
-	Server 			*rpcx.Server
+	Server 			*server.Server
 
 	Network			string
 	ServiceAddr 	string
@@ -54,9 +54,9 @@ type RpcServiceName interface {
 	quic
 	default   tcp
 */
-func InitRpcServerWithConsul(network,serviceAddr string,consulAddr string) {
+func InitRpcServerWithConsul(network,serviceAddr string,consulAddr string,basepath string) {
 
-	defautlServer = NewRpcServerWithConsul(network,serviceAddr,consulAddr)
+	defautlServer = NewRpcServerWithConsul(network,serviceAddr,consulAddr,basepath)
 	if defautlServer == nil {
 		fmt.Printf("cannot initial rpc server.\n")
 	}
@@ -68,9 +68,9 @@ func RpcRegisterService(servName RpcServiceName,service RpcService,metadata stri
 	}
 }
 
-func RpcRegisterDefaultService(servName RpcServiceName,service RpcService) {
+func RpcRegisterDefaultService(servName RpcServiceName,service RpcService,meta string) {
 	if defautlServer != nil {
-		defautlServer.RegisterDefaultService(servName,service)
+		defautlServer.RegisterDefaultService(servName,service,meta)
 	}else{
 		fmt.Printf("register default services failed.\n")
 	}
@@ -108,11 +108,11 @@ func RpcServe(){
 }
 
 
-func NewRpcServerWithConsul(network,serviceAddr string,consulAddr string) *RpcServer {
+func NewRpcServerWithConsul(network,serviceAddr string,consulAddr string,basepath string) *RpcServer {
 
 	s := new(RpcServer)
 
-	s.Server = rpcx.NewServer()
+	s.Server = server.NewServer()
 
 	if network == "" {
 		network = "tcp"
@@ -122,14 +122,21 @@ func NewRpcServerWithConsul(network,serviceAddr string,consulAddr string) *RpcSe
 	s.ServiceAddr = serviceAddr
 	s.Methods = make(map[string]Method)
 
-	p :=  &plugin.ConsulRegisterPlugin{
-		ServiceAddress: network +"@" + serviceAddr,
-		ConsulAddress:  consulAddr,
-		UpdateInterval: time.Second,
-	}
+	//p := &serverplugin.ConsulRegisterPlugin {
+	//	ServiceAddress: network +"@" + serviceAddr,
+	//	ConsulServers:  []string{consulAddr},
+	//	BasePath: basepath,
+	//	Metrics:        metrics.NewRegistry(),
+	//	UpdateInterval: time.Second,
+	//}
+	//
+	//
+	//err := p.Start()
+	//if err != nil {
+	//	fmt.Errorf("不能注册服务：%v\n",err)
+	//}
+	//s.Server.Plugins.Add(p)
 
-	p.Start()
-	s.Server.PluginContainer.Add(p)
 
 	return s
 }
@@ -140,10 +147,13 @@ func ( s *RpcServer ) RegisterService(servName RpcServiceName,service RpcService
 	}
 }
 
-func ( s *RpcServer ) RegisterDefaultService(servName RpcServiceName,service RpcService) {
+func ( s *RpcServer ) RegisterDefaultService(servName RpcServiceName,service RpcService,meta string) {
 
 	if service != nil {
-		s.Server.RegisterName(servName.GetServiceName(),service)
+		fmt.Printf("注册服务：%s\n",servName.GetServiceName())
+		s.Server.RegisterName(servName.GetServiceName(),service,meta)
+	}else{
+		fmt.Errorf("不能注册服务，service为nil")
 	}
 }
 
@@ -181,9 +191,9 @@ func ( s *RpcServer ) GetMethodByName(name string) Method {
 }
 
 
-type DefaultJSONRpc struct {}
+type JSONRpc struct {}
 
-func ( jr *DefaultJSONRpc ) Services( ctx context.Context,req *RpcRequest,ret *RpcResponse ) error {
+func ( jr *JSONRpc ) Services( ctx context.Context,req *RpcRequest,ret *RpcResponse ) error {
 
 	var err error
 	if req == nil || ret == nil {
