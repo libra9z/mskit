@@ -56,7 +56,7 @@ type RpcServiceName interface {
 */
 func InitRpcServerWithConsul(network,serviceAddr string,consulAddr string,basepath string) {
 
-	defautlServer = NewRpcServerWithConsul(network,serviceAddr,consulAddr,basepath)
+	//defautlServer = NewRpcServerWithConsul(network,serviceAddr,consulAddr,basepath)
 	if defautlServer == nil {
 		fmt.Printf("cannot initial rpc server.\n")
 	}
@@ -64,13 +64,13 @@ func InitRpcServerWithConsul(network,serviceAddr string,consulAddr string,basepa
 
 func RpcRegisterService(servName RpcServiceName,service RpcService,metadata string) {
 	if defautlServer != nil && service != nil {
-		defautlServer.RegisterService(servName,service,metadata)
+		//defautlServer.RegisterService(servName,service,metadata)
 	}
 }
 
 func RpcRegisterDefaultService(servName RpcServiceName,service RpcService,meta string) {
 	if defautlServer != nil {
-		defautlServer.RegisterDefaultService(servName,service,meta)
+		//defautlServer.RegisterDefaultService(servName,service,meta)
 	}else{
 		fmt.Printf("register default services failed.\n")
 	}
@@ -143,7 +143,7 @@ func NewRpcServerWithConsul(network,serviceAddr string,consulAddr string,basepat
 
 func ( s *RpcServer ) RegisterService(servName RpcServiceName,service RpcService,metadata string) {
 	if service != nil {
-		s.Server.RegisterName(servName.GetServiceName(),service,metadata)
+		//s.Server.RegisterName(servName.GetServiceName(),service,metadata)
 	}
 }
 
@@ -151,7 +151,7 @@ func ( s *RpcServer ) RegisterDefaultService(servName RpcServiceName,service Rpc
 
 	if service != nil {
 		fmt.Printf("注册服务：%s\n",servName.GetServiceName())
-		s.Server.RegisterName(servName.GetServiceName(),service,meta)
+		//s.Server.RegisterName(servName.GetServiceName(),service,meta)
 	}else{
 		fmt.Errorf("不能注册服务，service为nil")
 	}
