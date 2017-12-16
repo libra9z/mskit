@@ -8,9 +8,9 @@ import (
 	"fmt"
 	"encoding/json"
 	"errors"
-	//metrics "github.com/rcrowley/go-metrics"
-	//"github.com/smallnest/rpcx/serverplugin"
-	//"time"
+	metrics "github.com/rcrowley/go-metrics"
+	"github.com/smallnest/rpcx/serverplugin"
+	"time"
 )
 
 const (
@@ -123,20 +123,20 @@ func NewRpcServerWithConsul(network,serviceAddr string,consulAddr string,basepat
 	s.ServiceAddr = serviceAddr
 	s.Methods = make(map[string]Method)
 
-	//p := &serverplugin.ConsulRegisterPlugin {
-	//	ServiceAddress: network +"@" + serviceAddr,
-	//	ConsulServers:  []string{consulAddr},
-	//	BasePath: basepath,
-	//	Metrics:        metrics.NewRegistry(),
-	//	UpdateInterval: time.Second,
-	//}
-	//
-	//
-	//err := p.Start()
-	//if err != nil {
-	//	fmt.Errorf("不能注册服务：%v\n",err)
-	//}
-	//s.Server.Plugins.Add(p)
+	p := &serverplugin.ConsulRegisterPlugin {
+		ServiceAddress: network +"@" + serviceAddr,
+		ConsulServers:  []string{consulAddr},
+		BasePath: basepath,
+		Metrics:        metrics.NewRegistry(),
+		UpdateInterval: time.Second,
+	}
+
+
+	err := p.Start()
+	if err != nil {
+		fmt.Errorf("不能注册服务：%v\n",err)
+	}
+	s.Server.Plugins.Add(p)
 
 
 	return s
