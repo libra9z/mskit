@@ -119,6 +119,8 @@ func NewRpcServerWithConsul(network,serviceAddr string,consulAddr string,basepat
 		network = "tcp"
 	}
 
+	fmt.Println("开始向consul注册服务...")
+
 	s.Network = network
 	s.ServiceAddr = serviceAddr
 	s.Methods = make(map[string]Method)
@@ -128,7 +130,7 @@ func NewRpcServerWithConsul(network,serviceAddr string,consulAddr string,basepat
 		ConsulServers:  []string{consulAddr},
 		BasePath: basepath,
 		Metrics:        metrics.NewRegistry(),
-		UpdateInterval: time.Second,
+		UpdateInterval: time.Minute,
 	}
 
 
@@ -144,7 +146,11 @@ func NewRpcServerWithConsul(network,serviceAddr string,consulAddr string,basepat
 
 func ( s *RpcServer ) RegisterService(servName RpcServiceName,service RpcService,metadata string) {
 	if service != nil {
-		//s.Server.RegisterName(servName.GetServiceName(),service,metadata)
+		err :=s.Server.RegisterName(servName.GetServiceName(),service,metadata)
+		//s.Server.Register(service,metadata)
+		if err != nil {
+			fmt.Printf("不能注册服务:%v\n",err)
+		}
 	}
 }
 
@@ -152,7 +158,11 @@ func ( s *RpcServer ) RegisterDefaultService(servName RpcServiceName,service Rpc
 
 	if service != nil {
 		fmt.Printf("注册服务：%s\n",servName.GetServiceName())
-		//s.Server.RegisterName(servName.GetServiceName(),service,meta)
+		err :=s.Server.RegisterName(servName.GetServiceName(),service,meta)
+		//err := s.Server.Register(service,meta)
+		if err != nil {
+			fmt.Errorf("不能注册服务:%v\n",err)
+		}
 	}else{
 		fmt.Errorf("不能注册服务，service为nil")
 	}
