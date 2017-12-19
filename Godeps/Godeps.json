@@ -214,8 +214,8 @@
 		},
 		{
 			"ImportPath": "github.com/libra9z/httprouter",
-			"Comment": "v1.1-29-g77366a4",
-			"Rev": "77366a47451a56bb3ba682481eed85b64fea14e8"
+			"Comment": "v1.1-56-g24c46e7",
+			"Rev": "24c46e73ea429ea5bdc963ca68d547e77cfd275c"
 		},
 		{
 			"ImportPath": "github.com/lucas-clemente/aes12",
