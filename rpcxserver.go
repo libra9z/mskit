@@ -18,7 +18,7 @@ const (
 )
 
 
-type Method func(interface{})(interface{},error)
+type Method func(int64,int64,string,interface{})(interface{},error)
 type RpcServer struct {
 	Server 			*server.Server
 
@@ -31,6 +31,9 @@ type RpcServer struct {
 var defautlServer *RpcServer
 
 type RpcRequest struct {
+	Appid 			int64
+	SiteId 			int64
+	Token 			string
 	Req		 		string
 }
 
@@ -238,7 +241,7 @@ func ( jr *JSONRpc ) Services( ctx context.Context,req *RpcRequest,ret *RpcRespo
 		if method != "" {
 			function := RpcGetMethodByName(method)
 			if function != nil {
-				result ,err = function(vs["params"] )
+				result ,err = function(req.Appid,req.SiteId,req.Token,vs["params"] )
 				fmt.Printf("result=%v\n",result)
 			}else{
 				fmt.Errorf("没有找对对应的方法。")
