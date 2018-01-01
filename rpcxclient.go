@@ -14,7 +14,7 @@ func RpcCallWithConsul(basepath,consuladdr,serviceName,methodName string,selectM
 	client := client.NewXClient(serviceName, client.Failtry, client.RandomSelect, d, client.DefaultOption)
 	defer client.Close()
 
-	serviceMethod := serviceName+"." + methodName
+	serviceMethod :=  methodName
 	err := client.Call(context.Background(), serviceMethod, req, ret)
 	if err != nil {
 		fmt.Printf("error for %s: %v \n", serviceMethod, err)
