@@ -33,6 +33,7 @@ var defautlServer *RpcServer
 type RpcRequest struct {
 	Appid 			int64
 	SiteId 			int64
+	Id 				int64		//修改某一条记录时的记录标识
 	Token 			string
 	Req		 		string
 }
