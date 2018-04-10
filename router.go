@@ -169,7 +169,7 @@ func RegisterServiceWithTracer(path string, rest RestService, tracer stdopentrac
 	}
 	if tracer != nil {
 		svc = opentracing.TraceServer(tracer, path)(svc)
-		options = append(options, mshttp.ServerBefore(opentracing.FromHTTPRequest(tracer, path, logger)))
+		options = append(options, mshttp.ServerBefore(opentracing.HTTPToContext(tracer, path, logger)))
 	}
 
 
@@ -239,7 +239,7 @@ func (ms *MicroService) RegisterServiceWithTracer(path string, rest RestService,
 	}
 	if tracer != nil {
 		svc = opentracing.TraceServer(tracer, path)(svc)
-		options = append(options, mshttp.ServerBefore(opentracing.FromHTTPRequest(tracer, path, logger)))
+		options = append(options, mshttp.ServerBefore(opentracing.HTTPToContext(tracer, path, logger)))
 	}
 
 	handler := mshttp.NewServer(
@@ -354,7 +354,19 @@ func (c *RestApi) DecodeRequest(_ context.Context, r *http.Request) (request int
 
 	if !strings.Contains(r.Header.Get("Content-Type"), "multipart/form-data") {
 		req.Body, err = ioutil.ReadAll(r.Body)
+
+		if strings.Contains(r.Header.Get("Content-Type"), "application/json") {
+			req.ContentType = CONTENT_TYPE_JSON
+		}else if strings.Contains(r.Header.Get("Content-Type"), "application/xml") ||
+			strings.Contains(r.Header.Get("Content-Type"), "text/xml") {
+			req.ContentType = CONTENT_TYPE_XML
+		}else if strings.Contains(r.Header.Get("Content-Type"), "x-www-form-urlencoded") {
+			req.ContentType = CONTENT_TYPE_FORM
+		}
+	}else {
+		req.ContentType = CONTENT_TYPE_MULTIFORM
 	}
+
 
 	return req, nil
 }
