@@ -191,6 +191,14 @@ func RegisterServiceWithTracer(path string, rest RestService, tracer stdopentrac
 	MsRest.Router.Handler("TRACE", path, handler)
 }
 
+func Handler(method, path string, handler http.Handler) {
+	MsRest.Router.Handler(method, path, handler)
+}
+func HandlerFunc(method, path string, handler http.Handler) {
+	MsRest.Router.Handler(method, path, handler)
+}
+
+
 
 func (ms *MicroService) RegisterRestService(path string, rest RestService, middlewares ...RestMiddleware) {
 	//ctx := context.Background()
@@ -259,6 +267,16 @@ func (ms *MicroService) RegisterServiceWithTracer(path string, rest RestService,
 	ms.Router.Handler("OPTIONS", path, handler)
 	ms.Router.Handler("TRACE", path, handler)
 }
+
+
+func (ms *MicroService) Handler(method, path string, handler http.Handler) {
+	ms.Router.Handler(method, path, handler)
+}
+func (ms *MicroService) HandlerFunc(method, path string, handler http.Handler) {
+	ms.Router.Handler(method, path, handler)
+}
+
+
 
 type RestApi struct {
 }
@@ -406,3 +424,5 @@ func (c *RestApi) EncodeResponse(_ context.Context, w http.ResponseWriter, respo
 
 	return err
 }
+
+
