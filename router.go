@@ -279,6 +279,7 @@ func (ms *MicroService) HandlerFunc(method, path string, handler http.Handler) {
 
 
 type RestApi struct {
+	Request 		*http.Request
 }
 
 // Get adds a request function to handle GET request.
@@ -335,6 +336,8 @@ func (c *RestApi) GetErrorResponse() interface{} {
 proxy_set_header Remote_addr $remote_addr;
 */
 func (c *RestApi) DecodeRequest(_ context.Context, r *http.Request) (request interface{}, err error) {
+
+	c.Request = r
 
 	req := Request{Queries: make(map[string]interface{})}
 
