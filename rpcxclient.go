@@ -4,14 +4,22 @@ import (
 	"context"
 	"github.com/smallnest/rpcx/client"
 	"fmt"
+	"strings"
 )
 
 
 func RpcCallWithConsul(basepath,consuladdr,serviceName,methodName string,selectMode int,req *RpcRequest,ret *RpcResponse) error {
 
 
-	d := client.NewConsulDiscovery(basepath, serviceName, []string{consuladdr}, nil)
-	client := client.NewXClient(serviceName, client.Failtry, client.RandomSelect, d, client.DefaultOption)
+	ss := strings.Split(consuladdr,";")
+
+	d := client.NewConsulDiscovery(basepath, serviceName, ss, nil)
+
+	if selectMode < 0  {
+		selectMode = int(client.RandomSelect)
+	}
+
+	client := client.NewXClient(serviceName, client.Failtry, client.SelectMode(selectMode), d, client.DefaultOption)
 	defer client.Close()
 
 	serviceMethod :=  methodName
