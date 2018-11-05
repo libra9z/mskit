@@ -11,6 +11,7 @@ import (
 	metrics "github.com/rcrowley/go-metrics"
 	"github.com/smallnest/rpcx/serverplugin"
 	"time"
+	"strings"
 )
 
 const (
@@ -125,13 +126,15 @@ func NewRpcServerWithConsul(network,serviceAddr string,consulAddr string,basepat
 
 	fmt.Println("开始向consul注册服务...")
 
+	cs := strings.Split(consulAddr,",")
+
 	s.Network = network
 	s.ServiceAddr = serviceAddr
 	s.Methods = make(map[string]Method)
 
 	p := &serverplugin.ConsulRegisterPlugin {
 		ServiceAddress: network +"@" + serviceAddr,
-		ConsulServers:  []string{consulAddr},
+		ConsulServers:  cs,
 		BasePath: basepath,
 		Metrics:        metrics.NewRegistry(),
 		UpdateInterval: time.Minute,
