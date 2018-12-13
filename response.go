@@ -5,7 +5,7 @@ import (
 )
 
 type Response struct {
-	Data	map[string]interface{}
+	Data	map[string]interface{} `json:"data"`
 	Method	string
 }
 
