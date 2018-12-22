@@ -1,4 +1,4 @@
-package mskit
+package rest
 
 import "github.com/go-kit/kit/endpoint"
 
@@ -8,7 +8,6 @@ type RestMiddleware struct {
 	Middle Middleware
 	Object interface{}
 }
-
 
 func (rm *RestMiddleware) GetMiddleware() func(interface{}) Middleware {
 	return func(inter interface{}) Middleware {

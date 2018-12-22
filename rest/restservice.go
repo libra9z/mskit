@@ -1,9 +1,10 @@
-package mskit
+package rest
 
 import (
 	"context"
 	"encoding/json"
 	"errors"
+	"github.com/libra9z/httprouter"
 	"net/http"
 )
 
@@ -21,16 +22,14 @@ var (
 	ErrMaxSizeExceeded = errors.New("result exceeds maximum size")
 )
 
-func errorEncoder(_ context.Context, err error, w http.ResponseWriter) {
+func ErrorEncoder(_ context.Context, err error, w http.ResponseWriter) {
 	code := http.StatusInternalServerError
 	msg := err.Error()
-
 
 	switch err {
 	case ErrTwoZeroes, ErrMaxSizeExceeded, ErrIntOverflow:
 		code = http.StatusBadRequest
 	}
-
 
 	w.WriteHeader(code)
 	json.NewEncoder(w).Encode(errorWrapper{Error: msg})
@@ -51,6 +50,7 @@ type RestService interface {
 	Trace(*Request) (interface{}, error)
 
 	//response relate interface
+	SetRouter(router *httprouter.Router)
 	GetErrorResponse() interface{}
 	DecodeRequest(context.Context, *http.Request) (request interface{}, err error)
 	EncodeResponse(context.Context, http.ResponseWriter, interface{}) error

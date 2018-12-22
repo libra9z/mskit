@@ -1,4 +1,4 @@
-package mskit
+package rest
 
 import (
 	"github.com/libra9z/httprouter"
@@ -19,12 +19,11 @@ type Request struct {
 }
 
 const (
-	maxParam = 50
-	CONTENT_TYPE_FORM		=  1
-	CONTENT_TYPE_XML		=  2
-	CONTENT_TYPE_JSON		=  3
-	CONTENT_TYPE_MULTIFORM	=  4
-
+	maxParam               = 50
+	CONTENT_TYPE_FORM      = 1
+	CONTENT_TYPE_XML       = 2
+	CONTENT_TYPE_JSON      = 3
+	CONTENT_TYPE_MULTIFORM = 4
 )
 
 func NewRequest() *Request {

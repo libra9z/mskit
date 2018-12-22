@@ -1,16 +1,24 @@
-package mskit
+package rest
 
 import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
+	"github.com/libra9z/httprouter"
 	"io/ioutil"
 	"net/http"
 	"strings"
 )
 
 type RestApi struct {
-	Request 		*http.Request
+	Request *http.Request
+	Router  *httprouter.Router
+}
+
+// Get adds a request function to handle GET request.
+func (c *RestApi) SetRouter(r *httprouter.Router) {
+	c.Router = r
 }
 
 // Get adds a request function to handle GET request.
@@ -74,7 +82,12 @@ func (c *RestApi) DecodeRequest(_ context.Context, r *http.Request) (request int
 
 	req.Method = r.Method
 
-	_, req.Params, _ = MsRest.Router.Lookup(r.Method, r.URL.EscapedPath())
+	if c.Router == nil {
+		fmt.Printf("no router set.\n")
+		return nil, errors.New("no router set.")
+	}
+
+	_, req.Params, _ = c.Router.Lookup(r.Method, r.URL.EscapedPath())
 
 	values := r.URL.Query()
 
@@ -87,7 +100,6 @@ func (c *RestApi) DecodeRequest(_ context.Context, r *http.Request) (request int
 		if len(sv) > 1 && strings.TrimSpace(sv[0]) == "version" {
 			req.Version = sv[1]
 		}
-
 	}
 
 	for k, v := range values {
@@ -109,16 +121,15 @@ func (c *RestApi) DecodeRequest(_ context.Context, r *http.Request) (request int
 
 		if strings.Contains(r.Header.Get("Content-Type"), "application/json") {
 			req.ContentType = CONTENT_TYPE_JSON
-		}else if strings.Contains(r.Header.Get("Content-Type"), "application/xml") ||
+		} else if strings.Contains(r.Header.Get("Content-Type"), "application/xml") ||
 			strings.Contains(r.Header.Get("Content-Type"), "text/xml") {
 			req.ContentType = CONTENT_TYPE_XML
-		}else if strings.Contains(r.Header.Get("Content-Type"), "x-www-form-urlencoded") {
+		} else if strings.Contains(r.Header.Get("Content-Type"), "x-www-form-urlencoded") {
 			req.ContentType = CONTENT_TYPE_FORM
 		}
-	}else {
+	} else {
 		req.ContentType = CONTENT_TYPE_MULTIFORM
 	}
-
 
 	return req, nil
 }
@@ -158,5 +169,3 @@ func (c *RestApi) EncodeResponse(_ context.Context, w http.ResponseWriter, respo
 
 	return err
 }
-
-
