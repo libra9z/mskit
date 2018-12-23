@@ -56,68 +56,15 @@ func init() {
 	logger = log.With(logger, "caller", log.DefaultCaller)
 }
 
-// Run Rest MicroService.
-/**
-* params 为可变参数
-* 第一个参数为ip host
-* 第二个参数为ip port
-* 第三个参数为ServerTimeOut
-* 第四个参数为协议是否为Tcp4 or tcp6，bool值：true or false
- */
-//func (ms *MicroService) Serve(params ...string) {
-//
-//	if len(params) < 2 {
-//		fmt.Printf("err: no host port parameters set.\n")
-//		return
-//	}
-//
-//	addr := params[0] + ":" + params[1]
-//
-//
-//	if len(params) > 2 {
-//		ServerTimeOut, _ := strconv.ParseInt(params[2], 10, 64)
-//		ms.Server.ReadTimeout = time.Duration(ServerTimeOut) * time.Second
-//		ms.Server.WriteTimeout = time.Duration(ServerTimeOut) * time.Second
-//	}
-//
-//	var isListenTCP4 bool = false
-//
-//	if len(params) > 3 {
-//		isListenTCP4, _ = strconv.ParseBool(params[3])
-//	}
-//
-//	// run normal mode
-//
-//	ms.Server.Handler = ms.Router
-//	ms.Server.Addr = addr
-//	fmt.Printf("http server Running on : %s\n", ms.Server.Addr)
-//	if isListenTCP4 {
-//		ln, err := net.Listen("tcp4", ms.Server.Addr)
-//		if err != nil {
-//			fmt.Printf("ListenAndServe: %v\n", err)
-//			time.Sleep(100 * time.Microsecond)
-//			return
-//		}
-//		if err = ms.Server.Serve(ln); err != nil {
-//			fmt.Printf("ListenAndServe: %v\n", err)
-//			time.Sleep(100 * time.Microsecond)
-//			return
-//		}
-//	} else {
-//		if err := ms.Server.ListenAndServe(); err != nil {
-//			fmt.Printf("ListenAndServe: %v\n", err)
-//			time.Sleep(100 * time.Microsecond)
-//		}
-//	}
-//
-//}
-
 /**
 * params 为可变参数
 * 第一个参数为ip host
 * 第二个参数为ip port
 * 第三个参数为ServerTimeOut
 * 第四个参数为协议是否为Tcp4 or tcp6， 字符串，取值：tcp,tcp4,tcp6
+* 第五个参数为协议是否为certFile， 字符串，取值：certFile
+* 第六个参数为协议是否为keyFile， 字符串，取值：keyFile
+* 第七个参数为协议是否为trustFile， 字符串，取值：trustFile
  */
 func (srv *MicroService) Serve(params ...string) (err error) {
 
