@@ -17,7 +17,6 @@ import (
 	"strings"
 )
 
-
 var logger kitlog.Logger
 
 func init() {
@@ -28,22 +27,21 @@ func init() {
 	logger = kitlog.With(logger, "caller", kitlog.DefaultCaller)
 }
 
-
-func getConsulClient(addr,schema string) consulsd.Client {
+func getConsulClient(addr, schema string) consulsd.Client {
 	var client consulsd.Client
 	{
 		consulConfig := api.DefaultConfig()
-		if addr!= "" {
+		if addr != "" {
 			consulConfig.Address = addr
 		}
 		if schema != "" {
 			consulConfig.Scheme = schema
-		}else{
+		} else {
 			consulConfig.Scheme = "http"
 		}
 		consulClient, err := api.NewClient(consulConfig)
 		if err != nil {
-			log.Fatal( err)
+			log.Fatal(err)
 			os.Exit(1)
 		}
 		client = consulsd.NewClient(consulClient)
@@ -52,7 +50,7 @@ func getConsulClient(addr,schema string) consulsd.Client {
 	return client
 }
 
-func Register(app *grace.MicroService,schema,name string, prefix string, addr, consul, token string, callback func(app *grace.MicroService,param map[string]interface{}) error, params map[string]interface{}) {
+func Register(app *grace.MicroService, schema, name string, prefix string, addr, consul, token string, callback ServiceCallback, params map[string]interface{}) {
 
 	if name == "" {
 		log.Fatal("name empty")
@@ -100,7 +98,7 @@ func Register(app *grace.MicroService,schema,name string, prefix string, addr, c
 	}
 	go func() {
 		log.Printf("Listening on %s serving %s", addr, prefix)
-		if err := callback(app,params); err != nil {
+		if err := callback(app, params); err != nil {
 			log.Fatal(err)
 		}
 	}()
@@ -119,15 +117,15 @@ func Register(app *grace.MicroService,schema,name string, prefix string, addr, c
 		Tags:    tags,
 		Check: &api.AgentServiceCheck{
 			CheckID:  "check-" + serviceID,
-			HTTP:     schema+"://" + addr +prefix+ "/health",
+			HTTP:     schema + "://" + addr + prefix + "/health",
 			Interval: interval,
 			Timeout:  timeout,
 		},
 	}
 
-	c := getConsulClient(consul,schema)
+	c := getConsulClient(consul, schema)
 
-	reg:=consulsd.NewRegistrar(c,service,logger)
+	reg := consulsd.NewRegistrar(c, service, logger)
 
 	reg.Register()
 
@@ -148,7 +146,7 @@ func readFile(path string) []byte {
 	return f
 }
 
-func RegisterWithConf(app *grace.MicroService,schema string,fname string, consul, token string, callbacks ...func(app *grace.MicroService, params map[string]interface{}) error) {
+func RegisterWithConf(app *grace.MicroService, schema string, fname string, consul, token string, callbacks ...ServiceCallback) {
 
 	if fname == "" {
 		log.Fatal("没有指定配置文件。\n")
@@ -178,7 +176,7 @@ func RegisterWithConf(app *grace.MicroService,schema string,fname string, consul
 	consul = cs[0]
 
 	var p interface{}
-	key := schema+"_"
+	key := schema + "_"
 	if data[key+"service"] != nil {
 		p = data[key+"service"].(interface{})
 	} else if data[key+"services"] != nil {
@@ -205,7 +203,7 @@ func RegisterWithConf(app *grace.MicroService,schema string,fname string, consul
 			}
 			for i, vs := range ps {
 				v := vs.(map[string]interface{})
-				go registerService(app,schema,consul, token, v, callbacks[i],cps)
+				go registerService(app, schema, consul, token, v, callbacks[i], cps)
 			}
 
 			quit := make(chan os.Signal, 1)
@@ -219,12 +217,12 @@ func RegisterWithConf(app *grace.MicroService,schema string,fname string, consul
 				return
 			}
 			params = p.(map[string]interface{})
-			registerService(app,schema,consul, token, params, callbacks[0],cps)
+			registerService(app, schema, consul, token, params, callbacks[0], cps)
 		}
 	} else if schema == "rpcx" {
 		if data["rpcx"] != nil {
 			vs := data["rpcx"].([]interface{})
-			for i,vv := range vs {
+			for i, vv := range vs {
 				v := vv.(map[string]interface{})
 				m := make(map[string]interface{})
 				if v["address"] != nil {
@@ -233,9 +231,9 @@ func RegisterWithConf(app *grace.MicroService,schema string,fname string, consul
 				if v["port"] != nil {
 					m["port"] = utils.ConvertToString(v["port"])
 				}
-				go callbacks[i](app,m)
+				go callbacks[i](app, m)
 			}
-		}else{
+		} else {
 			log.Fatal("没有配置参数。")
 			panic("没有配置参数")
 		}
@@ -243,7 +241,7 @@ func RegisterWithConf(app *grace.MicroService,schema string,fname string, consul
 
 }
 
-func registerService(app *grace.MicroService,schema,consul, token string, params map[string]interface{}, callback func(app *grace.MicroService,param map[string]interface{}) error,datas map[string]interface{}) {
+func registerService(app *grace.MicroService, schema, consul, token string, params map[string]interface{}, callback ServiceCallback, datas map[string]interface{}) {
 	var name, prefix, host, addr string
 	var tags []string
 
@@ -279,7 +277,7 @@ func registerService(app *grace.MicroService,schema,consul, token string, params
 
 	go func(po int) {
 		log.Printf("Listening on %s:%d serving %s", host, po, prefix)
-		if err := callback(app,datas); err != nil {
+		if err := callback(app, datas); err != nil {
 			log.Fatal(err)
 		}
 	}(port)
@@ -383,7 +381,7 @@ func registerService(app *grace.MicroService,schema,consul, token string, params
 	if checks == nil {
 		check = &api.AgentServiceCheck{
 			CheckID:  "check-" + serviceID,
-			HTTP:     schema+"://" + addr +prefix+ "/health",
+			HTTP:     schema + "://" + addr + prefix + "/health",
 			Interval: "30s",
 			Timeout:  "3s",
 		}
@@ -397,7 +395,6 @@ func registerService(app *grace.MicroService,schema,consul, token string, params
 		Check:   check,
 		Checks:  checks,
 	}
-
 
 	if params["meta"] != nil {
 		vs := params["meta"].(map[string]interface{})
@@ -451,9 +448,9 @@ func registerService(app *grace.MicroService,schema,consul, token string, params
 		service.Connect = &proxy
 	}
 
-	c := getConsulClient(consul,schema)
+	c := getConsulClient(consul, schema)
 
-	reg:=consulsd.NewRegistrar(c,service,logger)
+	reg := consulsd.NewRegistrar(c, service, logger)
 
 	reg.Register()
 
