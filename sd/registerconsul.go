@@ -261,11 +261,13 @@ func registerService(app *grace.MicroService,schema,consul, token string, params
 
 	if params["address"] != nil {
 		host = utils.Hostname2IPv4(utils.ConvertToString(params["address"]))
+		datas["host"] = host
 	}
 
 	var port int
 	if params["port"] != nil {
 		port = utils.Convert2Int(params["port"])
+		datas["port"] = port
 	}
 
 	if port == 0 {
