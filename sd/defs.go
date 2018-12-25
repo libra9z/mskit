@@ -6,6 +6,12 @@ import (
 	"platform/mskit/grace"
 )
 
+const (
+	SERVICE_SCHEME_HTTP  = "http"
+	SERVICE_SCHEME_HTTPS = "https"
+	SERVICE_SCHEME_RPCX  = "rpcx"
+)
+
 type ServiceCallback func(app *grace.MicroService, params map[string]interface{}) error
 
 type ServiceOptions struct {
@@ -15,6 +21,7 @@ type ServiceOptions struct {
 	Host        string
 	Scheme      string //scheme is : http,https,rpcx
 	Port        int
+	Sc          ServiceCallback
 	Checks      []map[string]interface{}
 }
 
