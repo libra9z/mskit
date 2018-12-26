@@ -231,6 +231,10 @@ func RegisterWithConf(app *grace.MicroService, schema string, fname string, cons
 				if v["port"] != nil {
 					m["port"] = utils.ConvertToString(v["port"])
 				}
+				if v["consul_address"] != nil {
+					m["consul_address"] = v["consul_address"]
+				}
+
 				go callbacks[i](app, m)
 			}
 		} else {
@@ -448,6 +452,13 @@ func registerService(app *grace.MicroService, schema, consul, token string, para
 		service.Connect = &proxy
 	}
 
+	var	caddr string
+	if params["consul_address"] != nil {
+		caddr = utils.ConvertToString(params["consul_address"])
+	}
+	if caddr != "" {
+		consul = caddr
+	}
 	c := getConsulClient(consul, schema)
 
 	reg := consulsd.NewRegistrar(c, service, logger)
