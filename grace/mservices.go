@@ -97,7 +97,9 @@ func (srv *MicroService) Serve(params ...string) (err error) {
 		srv.GraceListener = newGraceListener(l, srv)
 	}
 	srv.state = StateRunning
-	srv.Server.Handler = srv.Router
+	if srv.Server.Handler == nil {
+		srv.Server.Handler = srv.Router
+	}
 	err = srv.Server.Serve(srv.GraceListener)
 	logger.Log("Waiting for connections to finish...: %v", syscall.Getpid())
 	srv.wg.Wait()
