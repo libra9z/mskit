@@ -40,14 +40,14 @@ type errorWrapper struct {
 }
 
 type RestService interface {
-	Get(*Request) (interface{}, error)
-	Post(*Request) (interface{}, error)
-	Delete(*Request) (interface{}, error)
-	Put(*Request) (interface{}, error)
-	Head(*Request) (interface{}, error)
-	Patch(*Request) (interface{}, error)
-	Options(*Request) (interface{}, error)
-	Trace(*Request) (interface{}, error)
+	Get(context.Context, *Request) (interface{}, error)
+	Post(context.Context, *Request) (interface{}, error)
+	Delete(context.Context, *Request) (interface{}, error)
+	Put(context.Context, *Request) (interface{}, error)
+	Head(context.Context, *Request) (interface{}, error)
+	Patch(context.Context, *Request) (interface{}, error)
+	Options(context.Context, *Request) (interface{}, error)
+	Trace(context.Context, *Request) (interface{}, error)
 
 	//response relate interface
 	SetRouter(router *httprouter.Router)

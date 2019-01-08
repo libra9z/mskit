@@ -22,42 +22,42 @@ func (c *RestApi) SetRouter(r *httprouter.Router) {
 }
 
 // Get adds a request function to handle GET request.
-func (c *RestApi) Get(r *Request) (interface{}, error) {
+func (c *RestApi) Get(ctx context.Context, r *Request) (interface{}, error) {
 	return nil, nil
 }
 
 // Post adds a request function to handle POST request.
-func (c *RestApi) Post(r *Request) (interface{}, error) {
+func (c *RestApi) Post(ctx context.Context, r *Request) (interface{}, error) {
 	return nil, nil
 }
 
 // Delete adds a request function to handle DELETE request.
-func (c *RestApi) Delete(r *Request) (interface{}, error) {
+func (c *RestApi) Delete(ctx context.Context, r *Request) (interface{}, error) {
 	return nil, nil
 }
 
 // Put adds a request function to handle PUT request.
-func (c *RestApi) Put(r *Request) (interface{}, error) {
+func (c *RestApi) Put(ctx context.Context, r *Request) (interface{}, error) {
 	return nil, nil
 }
 
 // Head adds a request function to handle HEAD request.
-func (c *RestApi) Head(r *Request) (interface{}, error) {
+func (c *RestApi) Head(ctx context.Context, r *Request) (interface{}, error) {
 	return nil, nil
 }
 
 // Patch adds a request function to handle PATCH request.
-func (c *RestApi) Patch(r *Request) (interface{}, error) {
+func (c *RestApi) Patch(ctx context.Context, r *Request) (interface{}, error) {
 	return nil, nil
 }
 
 // Options adds a request function to handle OPTIONS request.
-func (c *RestApi) Options(r *Request) (interface{}, error) {
+func (c *RestApi) Options(ctx context.Context, r *Request) (interface{}, error) {
 	return nil, nil
 }
 
 // Options adds a request function to handle OPTIONS request.
-func (c *RestApi) Trace(r *Request) (interface{}, error) {
+func (c *RestApi) Trace(ctx context.Context, r *Request) (interface{}, error) {
 	return nil, nil
 }
 

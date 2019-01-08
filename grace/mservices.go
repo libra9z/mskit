@@ -448,21 +448,21 @@ func (srv *MicroService) NewRestEndpoint(svc rest.RestService) endpoint.Endpoint
 		var err error
 		switch req.Method {
 		case "GET":
-			ret, err = svc.Get(&req)
+			ret, err = svc.Get(ctx, &req)
 		case "POST":
-			ret, err = svc.Post(&req)
+			ret, err = svc.Post(ctx, &req)
 		case "PUT":
-			ret, err = svc.Put(&req)
+			ret, err = svc.Put(ctx, &req)
 		case "DELETE":
-			ret, err = svc.Delete(&req)
+			ret, err = svc.Delete(ctx, &req)
 		case "HEAD":
-			ret, err = svc.Head(&req)
+			ret, err = svc.Head(ctx, &req)
 		case "PATCH":
-			ret, err = svc.Patch(&req)
+			ret, err = svc.Patch(ctx, &req)
 		case "OPTIONS":
-			ret, err = svc.Options(&req)
+			ret, err = svc.Options(ctx, &req)
 		case "TRACE":
-			ret, err = svc.Trace(&req)
+			ret, err = svc.Trace(ctx, &req)
 		case "CONNECT":
 		}
 
