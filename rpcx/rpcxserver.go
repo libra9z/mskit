@@ -18,7 +18,7 @@ const (
 	JSONRPC_ERR_METHOD_NOT_FOUND = 32601
 )
 
-type Method func(int64, int64, string, interface{}) (interface{}, error)
+type Method func(context.Context,int64, int64, string, interface{}) (interface{}, error)
 type RpcServer struct {
 	Server *server.Server
 
@@ -237,7 +237,7 @@ func (jr *JSONRpc) Services(ctx context.Context, req *RpcRequest, ret *RpcRespon
 		if method != "" {
 			function := RpcGetMethodByName(method)
 			if function != nil {
-				result, err = function(req.Appid, req.SiteId, req.Token, vs["params"])
+				result, err = function(ctx,req.Appid, req.SiteId, req.Token, vs["params"])
 				fmt.Printf("result=%v\n", result)
 			} else {
 				fmt.Errorf("没有找对对应的方法。")
