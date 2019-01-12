@@ -7,7 +7,6 @@ import (
 	"errors"
 	"fmt"
 	"github.com/go-kit/kit/endpoint"
-	"github.com/go-kit/kit/log"
 	"github.com/go-kit/kit/tracing/opentracing"
 	"github.com/go-kit/kit/tracing/zipkin"
 	mshttp "github.com/go-kit/kit/transport/http"
@@ -21,6 +20,7 @@ import (
 	"os/exec"
 	"os/signal"
 	"platform/mskit/rest"
+	"platform/mskit/log"
 	"strconv"
 	"strings"
 	"sync"
@@ -46,15 +46,6 @@ type MicroService struct {
 	Network          string
 }
 
-var logger log.Logger
-
-func init() {
-	//logger = kitlog.NewLogfmtLogger(os.Stdout)
-	// Logging domain.
-	logger = log.NewLogfmtLogger(os.Stdout)
-	logger = log.With(logger, "ts", log.DefaultTimestampUTC)
-	logger = log.With(logger, "caller", log.DefaultCaller)
-}
 
 /**
 * params 为可变参数
@@ -90,7 +81,7 @@ func (srv *MicroService) Serve(params ...string) (err error) {
 	if srv.GraceListener == nil {
 		l, err := srv.getListener(srv.Server.Addr)
 		if err != nil {
-			logger.Log("error", err)
+			srv.logger.Log("error", err)
 			return err
 		}
 
@@ -101,7 +92,7 @@ func (srv *MicroService) Serve(params ...string) (err error) {
 		srv.Server.Handler = srv.Router
 	}
 	err = srv.Server.Serve(srv.GraceListener)
-	logger.Log("Waiting for connections to finish...: %v", syscall.Getpid())
+	srv.logger.Log("Waiting for connections to finish...: %v", syscall.Getpid())
 	srv.wg.Wait()
 	srv.state = StateTerminate
 	return
@@ -124,7 +115,7 @@ func (srv *MicroService) ListenAndServe(params ...string) (err error) {
 
 	l, err := srv.getListener(srv.Server.Addr)
 	if err != nil {
-		logger.Log("error", err)
+		srv.logger.Log("error", err)
 		return err
 	}
 
@@ -133,7 +124,7 @@ func (srv *MicroService) ListenAndServe(params ...string) (err error) {
 	if srv.isChild {
 		process, err := os.FindProcess(os.Getppid())
 		if err != nil {
-			logger.Log("error", err)
+			srv.logger.Log("error", err)
 			return err
 		}
 		err = process.Signal(syscall.SIGTERM)
@@ -141,7 +132,7 @@ func (srv *MicroService) ListenAndServe(params ...string) (err error) {
 			return err
 		}
 	}
-	logger.Log("address", srv.Server.Addr, "pid", os.Getpid())
+	srv.logger.Log("address", srv.Server.Addr, "pid", os.Getpid())
 	return srv.Serve(params...)
 }
 
@@ -180,7 +171,7 @@ func (srv *MicroService) ListenAndServeTLS(certFile, keyFile string, params ...s
 
 	l, err := srv.getListener(srv.Server.Addr)
 	if err != nil {
-		logger.Log("error", err)
+		srv.logger.Log("error", err)
 		return err
 	}
 
@@ -190,7 +181,7 @@ func (srv *MicroService) ListenAndServeTLS(certFile, keyFile string, params ...s
 	if srv.isChild {
 		process, err := os.FindProcess(os.Getppid())
 		if err != nil {
-			logger.Log("error", err)
+			srv.logger.Log("error", err)
 			return err
 		}
 		err = process.Signal(syscall.SIGTERM)
@@ -198,7 +189,7 @@ func (srv *MicroService) ListenAndServeTLS(certFile, keyFile string, params ...s
 			return err
 		}
 	}
-	logger.Log("address", srv.Server.Addr, "pid", os.Getpid())
+	srv.logger.Log("address", srv.Server.Addr, "pid", os.Getpid())
 	return srv.Serve(params...)
 }
 
@@ -229,7 +220,7 @@ func (srv *MicroService) ListenAndServeMutualTLS(certFile, keyFile, trustFile st
 	pool := x509.NewCertPool()
 	data, err := ioutil.ReadFile(trustFile)
 	if err != nil {
-		logger.Log("error", err)
+		srv.logger.Log("error", err)
 		return err
 	}
 	pool.AppendCertsFromPEM(data)
@@ -238,7 +229,7 @@ func (srv *MicroService) ListenAndServeMutualTLS(certFile, keyFile, trustFile st
 
 	l, err := srv.getListener(srv.Server.Addr)
 	if err != nil {
-		logger.Log("error", err)
+		srv.logger.Log("error", err)
 		return err
 	}
 
@@ -248,7 +239,7 @@ func (srv *MicroService) ListenAndServeMutualTLS(certFile, keyFile, trustFile st
 	if srv.isChild {
 		process, err := os.FindProcess(os.Getppid())
 		if err != nil {
-			logger.Log("error", err)
+			srv.logger.Log("error", err)
 			return err
 		}
 		err = process.Kill()
@@ -256,7 +247,7 @@ func (srv *MicroService) ListenAndServeMutualTLS(certFile, keyFile, trustFile st
 			return err
 		}
 	}
-	logger.Log("address", srv.Server.Addr, "pid", os.Getpid())
+	srv.logger.Log("address", srv.Server.Addr, "pid", os.Getpid())
 	return srv.Serve(params...)
 }
 
@@ -267,7 +258,7 @@ func (srv *MicroService) getListener(laddr string) (l net.Listener, err error) {
 		var ptrOffset uint
 		if len(socketPtrOffsetMap) > 0 {
 			ptrOffset = socketPtrOffsetMap[laddr]
-			logger.Log("laddr", laddr, "ptr offset", socketPtrOffsetMap[laddr])
+			srv.logger.Log("laddr", laddr, "ptr offset", socketPtrOffsetMap[laddr])
 		}
 
 		f := os.NewFile(uintptr(3+ptrOffset), "")
@@ -305,7 +296,7 @@ func (srv *MicroService) handleSignals() {
 			fmt.Println("Received SIGHUP. forking.", pid)
 			err := srv.fork()
 			if err != nil {
-				logger.Log("error", err)
+				srv.logger.Log("error", err)
 			}
 		case syscall.SIGINT:
 			fmt.Println("Received SIGINT.", pid)
@@ -355,7 +346,7 @@ func (srv *MicroService) shutdown() {
 func (srv *MicroService) serverTimeout(d time.Duration) {
 	defer func() {
 		if r := recover(); r != nil {
-			logger.Log("error", r)
+			srv.logger.Log("error", r)
 		}
 	}()
 	if srv.state != StateShuttingDown {

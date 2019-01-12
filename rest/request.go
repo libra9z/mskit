@@ -2,6 +2,7 @@ package rest
 
 import (
 	"github.com/libra9z/httprouter"
+	"github.com/opentracing/opentracing-go"
 	"net/http"
 	"strconv"
 )
@@ -16,6 +17,7 @@ type Request struct {
 	RemoteAddr    string
 	OriginRequest *http.Request
 	ContentType   int
+	Tracer 		  opentracing.Tracer
 }
 
 const (
