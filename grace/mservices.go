@@ -554,8 +554,8 @@ func (srv *MicroService) RegisterRestService(path string, rest rest.RestService,
 func (srv *MicroService) Handler(method, path string, handler http.Handler) {
 	srv.Router.Handler(method, path, handler)
 }
-func (srv *MicroService) HandlerFunc(method, path string, handler http.Handler) {
-	srv.Router.Handler(method, path, handler)
+func (srv *MicroService) HandlerFunc(method, path string, handlerFunc http.HandlerFunc) {
+	srv.Router.HandlerFunc(method, path, handlerFunc)
 }
 
 func regRoute(r *httprouter.Router, path string, handler http.Handler) {
