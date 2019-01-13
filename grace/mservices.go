@@ -19,8 +19,8 @@ import (
 	"os"
 	"os/exec"
 	"os/signal"
-	"platform/mskit/rest"
 	"platform/mskit/log"
+	"platform/mskit/rest"
 	"strconv"
 	"strings"
 	"sync"
@@ -45,7 +45,6 @@ type MicroService struct {
 	state            uint8
 	Network          string
 }
-
 
 /**
 * params 为可变参数
@@ -488,7 +487,7 @@ func (srv *MicroService) GetZipkinTracer() *stdzipkin.Tracer {
 	return srv.zipkinTracer
 }
 
-func (srv *MicroService) NewHttpHandler(path string, r rest.RestService, middlewares ...rest.RestMiddleware) *mshttp.Server {
+func (srv *MicroService) NewHttpHandler(withTracer bool, path string, r rest.RestService, middlewares ...rest.RestMiddleware) *mshttp.Server {
 
 	r.SetRouter(srv.Router)
 
@@ -503,10 +502,17 @@ func (srv *MicroService) NewHttpHandler(path string, r rest.RestService, middlew
 
 	if srv.zipkinTracer != nil {
 		zipkinServer = zipkin.HTTPServerTrace(srv.zipkinTracer)
-		options = []mshttp.ServerOption{
-			mshttp.ServerErrorEncoder(rest.ErrorEncoder),
-			mshttp.ServerErrorLogger(srv.logger),
-			zipkinServer,
+		if withTracer {
+			options = []mshttp.ServerOption{
+				mshttp.ServerErrorEncoder(rest.ErrorEncoder),
+				mshttp.ServerErrorLogger(srv.logger),
+				zipkinServer,
+			}
+		} else {
+			options = []mshttp.ServerOption{
+				mshttp.ServerErrorEncoder(rest.ErrorEncoder),
+				mshttp.ServerErrorLogger(srv.logger),
+			}
 		}
 	} else {
 		options = []mshttp.ServerOption{
@@ -515,7 +521,7 @@ func (srv *MicroService) NewHttpHandler(path string, r rest.RestService, middlew
 		}
 	}
 
-	if srv.tracer != nil {
+	if srv.tracer != nil && withTracer {
 		svc = opentracing.TraceServer(srv.tracer, path)(svc)
 		options = append(options, mshttp.ServerBefore(opentracing.HTTPToContext(srv.tracer, path, srv.logger)))
 	}
@@ -535,13 +541,13 @@ func (srv *MicroService) RegisterServiceWithTracer(path string, rest rest.RestSe
 	srv.SetLogger(logger)
 	srv.SetTracer(tracer)
 
-	handler := srv.NewHttpHandler(path, rest, middlewares...)
+	handler := srv.NewHttpHandler(true, path, rest, middlewares...)
 	regRoute(srv.Router, path, handler)
 }
 
 func (srv *MicroService) RegisterRestService(path string, rest rest.RestService, middlewares ...rest.RestMiddleware) {
 
-	handler := srv.NewHttpHandler(path, rest, middlewares...)
+	handler := srv.NewHttpHandler(false, path, rest, middlewares...)
 	regRoute(srv.Router, path, handler)
 }
 
