@@ -1,31 +1,37 @@
 //
-
 package rpcx
 
 import (
 	"context"
 	"encoding/json"
 	"errors"
-	"fmt"
+	zipkin "github.com/openzipkin/zipkin-go"
 	metrics "github.com/rcrowley/go-metrics"
 	"github.com/smallnest/rpcx/server"
 	"github.com/smallnest/rpcx/serverplugin"
 	"strings"
+	"platform/mskit/log"
 	"time"
 )
 
 const (
 	JSONRPC_ERR_METHOD_NOT_FOUND = 32601
 )
-
+type RpcxServerOptions func(* RpcServer)
 type Method func(context.Context,int64, int64, string, interface{}) (interface{}, error)
 type RpcServer struct {
 	Server *server.Server
+	logger log.Logger
 
 	Network     string
 	ServiceAddr string
+	SdType		string
+	SdAddress	string
+	BasePath	string
 
 	Methods map[string]Method
+
+	tracer 		*zipkin.Tracer
 }
 
 var defautlServer *RpcServer
@@ -51,20 +57,6 @@ type RpcServiceName interface {
 	GetServiceName() string
 }
 
-/*
-	参数network的定义如下：
-	kcp：
-	reuseport：
-	quic
-	default   tcp
-*/
-func InitRpcServerWithConsul(network, serviceAddr string, consulAddr string, basepath string) {
-
-	defautlServer = NewRpcServerWithConsul(network, serviceAddr, consulAddr, basepath)
-	if defautlServer == nil {
-		fmt.Printf("cannot initial rpc server.\n")
-	}
-}
 
 func RpcRegisterService(servName RpcServiceName, service RpcService, metadata string) {
 	if defautlServer != nil && service != nil {
@@ -76,7 +68,7 @@ func RpcRegisterDefaultService(servName RpcServiceName, service RpcService, meta
 	if defautlServer != nil {
 		defautlServer.RegisterDefaultService(servName, service, meta)
 	} else {
-		fmt.Printf("register default services failed.\n")
+		log.Mslog.Log("error","register default services failed.")
 	}
 
 }
@@ -86,7 +78,7 @@ func RpcRegisterDefaultMethod(methodName string, m Method) {
 	if defautlServer != nil {
 		defautlServer.RegisterMethod(methodName, m)
 	} else {
-		fmt.Printf("register default method failed.\n")
+		log.Mslog.Log("error","register default method failed.")
 	}
 
 }
@@ -105,43 +97,8 @@ func RpcServe() {
 	if defautlServer != nil {
 		defautlServer.Serve()
 	} else {
-		fmt.Printf("cannot start Rpcx server,default server is nil.\n")
+		log.Mslog.Log("error","cannot start Rpcx server,default server is nil.")
 	}
-}
-
-func NewRpcServerWithConsul(network, serviceAddr string, consulAddr string, basepath string) *RpcServer {
-
-	s := new(RpcServer)
-
-	s.Server = server.NewServer()
-
-	if network == "" {
-		network = "tcp"
-	}
-
-	fmt.Println("开始向consul注册服务...")
-
-	cs := strings.Split(consulAddr, ",")
-
-	s.Network = network
-	s.ServiceAddr = serviceAddr
-	s.Methods = make(map[string]Method)
-
-	p := &serverplugin.ConsulRegisterPlugin{
-		ServiceAddress: network + "@" + serviceAddr,
-		ConsulServers:  cs,
-		BasePath:       basepath,
-		Metrics:        metrics.NewRegistry(),
-		UpdateInterval: time.Minute,
-	}
-
-	err := p.Start()
-	if err != nil {
-		fmt.Errorf("不能注册服务：%v\n", err)
-	}
-	s.Server.Plugins.Add(p)
-
-	return s
 }
 
 func (s *RpcServer) RegisterService(servName RpcServiceName, service RpcService, metadata string) {
@@ -149,7 +106,7 @@ func (s *RpcServer) RegisterService(servName RpcServiceName, service RpcService,
 		err := s.Server.RegisterName(servName.GetServiceName(), service, metadata)
 		//s.Server.Register(service,metadata)
 		if err != nil {
-			fmt.Printf("不能注册服务:%v\n", err)
+			s.logger.Log("error", err,"reason","不能注册服务")
 		}
 	}
 }
@@ -157,24 +114,24 @@ func (s *RpcServer) RegisterService(servName RpcServiceName, service RpcService,
 func (s *RpcServer) RegisterDefaultService(servName RpcServiceName, service RpcService, meta string) {
 
 	if service != nil {
-		fmt.Printf("注册服务：%s\n", servName.GetServiceName())
+		s.logger.Log("info", "注册服务")
 		err := s.Server.RegisterName(servName.GetServiceName(), service, meta)
 		//err := s.Server.Register(service,meta)
 		if err != nil {
-			fmt.Errorf("不能注册服务:%v\n", err)
+			s.logger.Log("error", err,"reason","不能注册服务")
 		}
 	} else {
-		fmt.Errorf("不能注册服务，service为nil")
+		s.logger.Log("error", "不能注册服务，service为nil")
 	}
 }
 
 func (s *RpcServer) Serve() error {
 
-	fmt.Printf("rpcx server running on : %s\n", s.ServiceAddr)
+	s.logger.Log("rpcx server running on : ", s.ServiceAddr)
 	err := s.Server.Serve(s.Network, s.ServiceAddr)
 
 	if err != nil {
-		fmt.Printf("cannot run rpcx server: %v\n", err)
+		s.logger.Log("cannot run rpcx server: ", err)
 		return err
 	}
 	return nil
@@ -233,14 +190,14 @@ func (jr *JSONRpc) Services(ctx context.Context, req *RpcRequest, ret *RpcRespon
 	em := make(map[string]interface{})
 	if vs["method"] != nil {
 		method := vs["method"].(string)
-		fmt.Printf("call method : %s\n", method)
+		log.Mslog.Log("method", method)
 		if method != "" {
 			function := RpcGetMethodByName(method)
 			if function != nil {
 				result, err = function(ctx,req.Appid, req.SiteId, req.Token, vs["params"])
-				fmt.Printf("result=%v\n", result)
+				log.Mslog.Log("result", result)
 			} else {
-				fmt.Errorf("没有找对对应的方法。")
+				log.Mslog.Log("error","没有找对对应的方法。")
 			}
 		} else {
 			em["code"] = JSONRPC_ERR_METHOD_NOT_FOUND
@@ -272,3 +229,92 @@ func (jr *JSONRpc) Services(ctx context.Context, req *RpcRequest, ret *RpcRespon
 
 	return nil
 }
+
+// v2
+func NewRpcxServer(options ...RpcxServerOptions) *RpcServer {
+
+	s := &RpcServer{
+		logger: log.Mslog,
+		Server: server.NewServer(),
+		Methods: make(map[string]Method),
+	}
+
+	for _,option := range options {
+		option(s)
+	}
+
+	s.logger.Log("info","开始向consul注册服务...")
+
+	cs := strings.Split(s.SdAddress, ",")
+	switch s.SdType {
+	case "consul":
+		p := &serverplugin.ConsulRegisterPlugin{
+			ServiceAddress: s.Network + "@" + s.ServiceAddr,
+			ConsulServers:  cs,
+			BasePath:       s.BasePath,
+			Metrics:        metrics.NewRegistry(),
+			UpdateInterval: time.Minute,
+		}
+		err := p.Start()
+		if err != nil {
+			s.logger.Log("error", err)
+		}
+		s.Server.Plugins.Add(p)
+
+	case "etcd":
+		p := &serverplugin.EtcdRegisterPlugin{
+			ServiceAddress: s.Network + "@" + s.ServiceAddr,
+			EtcdServers : cs,
+			BasePath:       s.BasePath,
+			Metrics:        metrics.NewRegistry(),
+			UpdateInterval: time.Minute,
+		}
+		err := p.Start()
+		if err != nil {
+			s.logger.Log("error", err)
+		}
+		s.Server.Plugins.Add(p)
+	case "zookeeper":
+		p := &serverplugin.ZooKeeperRegisterPlugin{
+			ServiceAddress: s.Network + "@" + s.ServiceAddr,
+			ZooKeeperServers : cs,
+			BasePath:       s.BasePath,
+			Metrics:        metrics.NewRegistry(),
+			UpdateInterval: time.Minute,
+		}
+		err := p.Start()
+		if err != nil {
+			s.logger.Log("error", err)
+		}
+		s.Server.Plugins.Add(p)
+	}
+
+
+	if s.tracer != nil {
+		zkp := NewZipkinTracePlugin(s.tracer)
+		s.Server.Plugins.Add(zkp)
+	}
+	return s
+}
+
+
+func RpcxBasePathOption( basepath string) RpcxServerOptions {
+	return func(c *RpcServer){ c.BasePath = basepath}
+}
+func RpcxSdTypeOption( sdtype string) RpcxServerOptions {
+	return func(c *RpcServer){ c.SdType = sdtype}
+}
+func RpcxSdAddressOption( sdaddress string) RpcxServerOptions {
+	return func(c *RpcServer){ c.SdAddress = sdaddress}
+}
+func RpcxServiceAddressOption( svraddr string) RpcxServerOptions {
+	return func(c *RpcServer){ c.ServiceAddr = svraddr}
+}
+func RpcxNetworkOption( network string) RpcxServerOptions {
+	return func(c *RpcServer){ c.Network = network}
+}
+
+func RpcxZipkinOption( tracer *zipkin.Tracer) RpcxServerOptions {
+	return func(c *RpcServer){ c.tracer = tracer}
+}
+

@@ -433,6 +433,7 @@ func (srv *MicroService) NewRestEndpoint(svc rest.RestService) endpoint.Endpoint
 		}
 
 		req := request.(rest.Request)
+		req.Tracer = srv.zipkinTracer
 
 		var ret interface{}
 		var err error
