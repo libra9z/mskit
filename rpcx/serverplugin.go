@@ -41,6 +41,8 @@ func (p *ZipkinTracePlugin) PostReadRequest(ctx context.Context, r *protocol.Mes
 		tags["rpcx.method"] = rpcMethod
 	}
 
+	config.logger.Log("rpcx.method",rpcMethod)
+
 	if config.name != "" {
 		name = config.name
 	} else {

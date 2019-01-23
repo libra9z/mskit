@@ -34,7 +34,7 @@ func RpcCallWithConsul(basepath, consuladdr, serviceName, methodName string, sel
 
 func RpcxCall(ctx context.Context,zktracer *zipkin.Tracer,
 			sdtype,sdaddr string,
-			basepath, serviceName, methodName string,
+			basepath, serviceName,service, methodName string,
 			failMode client.FailMode,selectMode client.SelectMode,
 			req *RpcRequest) (ret *RpcResponse,err error) {
 
@@ -47,6 +47,7 @@ func RpcxCall(ctx context.Context,zktracer *zipkin.Tracer,
 	options = append(options,FailModeOption(failMode))
 	options = append(options,SelectModeOption(selectMode))
 	options = append(options,MethodOption(methodName))
+	options = append(options,ServiceOption(service))
 	options = append(options,ServiceNameOption(serviceName))
 
 	options = append(options,RpcxClientTrace(zktracer))
@@ -57,7 +58,7 @@ func RpcxCall(ctx context.Context,zktracer *zipkin.Tracer,
 
 	r,err := c.Endpoint()(ctx,req)
 	if r != nil {
-		resp  = r.(RpcResponse)
+		return  r.(*RpcResponse),err
 	}
-	return &resp,err
+	return nil,err
 }

@@ -17,6 +17,7 @@ type Client struct {
 	failMode 	client.FailMode
 	selectMode 	client.SelectMode
 	serviceName string
+	service		string
 	method      string
 	sdType      string
 	sdAddress   string
@@ -57,6 +58,12 @@ func NewClient(
 	case "consul":
 		ss := strings.Split(c.sdAddress, ";")
 		cs = client.NewConsulDiscovery(c.basePath, c.serviceName, ss, nil)
+	case "etcd":
+		ss := strings.Split(c.sdAddress, ";")
+		cs = client.NewEtcdDiscovery(c.basePath, c.serviceName, ss, nil)
+	case "zookeeper":
+		ss := strings.Split(c.sdAddress, ";")
+		cs = client.NewZookeeperDiscovery(c.basePath, c.serviceName, ss, nil)
 	}
 	c.client = client.NewXClient(c.serviceName, c.failMode, c.selectMode, cs, client.DefaultOption)
 	return c
@@ -107,10 +114,10 @@ func (c Client) Endpoint() endpoint.Endpoint {
 		}
 		ctx = NewOutgoingContext(ctx, *md)
 
-		req := request.(RpcRequest)
+		req := request.(*RpcRequest)
 		rpcxReply := reflect.New(c.rpcxReply).Interface()
 		if err = c.client.Call(
-			ctx, c.method, req, rpcxReply); err != nil {
+			ctx, c.service, req, rpcxReply); err != nil {
 			return nil, err
 		}
 
@@ -153,6 +160,9 @@ func SelectModeOption( sel client.SelectMode) ClientOption {
 }
 func MethodOption( method string) ClientOption {
 	return func(c *Client){ c.method = method}
+}
+func ServiceOption( service string) ClientOption {
+	return func(c *Client){ c.service = service}
 }
 func ServiceNameOption( svrname string) ClientOption {
 	return func(c *Client){ c.serviceName = svrname}

@@ -12,13 +12,15 @@ import (
 	"strings"
 	"platform/mskit/log"
 	"time"
+	"fmt"
 )
 
 const (
 	JSONRPC_ERR_METHOD_NOT_FOUND = 32601
 )
 type RpcxServerOptions func(* RpcServer)
-type Method func(context.Context,int64, int64, string, interface{}) (interface{}, error)
+type Method func(context.Context,*zipkin.Tracer,int64, int64, string, interface{}) (interface{}, error)
+
 type RpcServer struct {
 	Server *server.Server
 	logger log.Logger
@@ -37,11 +39,12 @@ type RpcServer struct {
 var defautlServer *RpcServer
 
 type RpcRequest struct {
-	Appid  int64
-	SiteId int64
-	Id     int64 //修改某一条记录时的记录标识
-	Token  string
-	Req    string
+	Appid  			int64
+	SiteId 			int64
+	Id     			int64 //修改某一条记录时的记录标识
+	Token  			string
+	Req    			string
+	WithTracer    	bool
 }
 
 type RpcResponse struct {
@@ -82,6 +85,15 @@ func RpcRegisterDefaultMethod(methodName string, m Method) {
 	}
 
 }
+func RegisterMethod(methodName string, m Method) {
+
+	if defautlServer != nil {
+		defautlServer.RegisterMethod(methodName, m)
+	} else {
+		log.Mslog.Log("error","register default method failed.")
+	}
+
+}
 
 func RpcGetMethodByName(name string) Method {
 
@@ -92,6 +104,15 @@ func RpcGetMethodByName(name string) Method {
 	return nil
 }
 
+func RpcGetMethodWithTracer(name string) (Method, *zipkin.Tracer) {
+
+	if defautlServer != nil {
+		return defautlServer.GetMethodByName(name),defautlServer.tracer
+	}
+
+	return nil,nil
+}
+
 func RpcServe() {
 
 	if defautlServer != nil {
@@ -99,6 +120,10 @@ func RpcServe() {
 	} else {
 		log.Mslog.Log("error","cannot start Rpcx server,default server is nil.")
 	}
+}
+
+func Serve() {
+	RpcServe()
 }
 
 func (s *RpcServer) RegisterService(servName RpcServiceName, service RpcService, metadata string) {
@@ -157,6 +182,19 @@ func (s *RpcServer) GetMethodByName(name string) Method {
 
 	return nil
 }
+func (s *RpcServer) GetMethodWithTracer(name string) (Method,*zipkin.Tracer) {
+
+	if name == "" {
+		return nil,nil
+	}
+
+	if m, ok := s.Methods[name]; ok {
+		return m,s.tracer
+	}
+
+	return nil,nil
+}
+
 
 type JSONRpc struct{}
 
@@ -192,10 +230,15 @@ func (jr *JSONRpc) Services(ctx context.Context, req *RpcRequest, ret *RpcRespon
 		method := vs["method"].(string)
 		log.Mslog.Log("method", method)
 		if method != "" {
-			function := RpcGetMethodByName(method)
+			var function Method
+			var zipkintracer *zipkin.Tracer
+			if req.WithTracer {
+				function,zipkintracer = RpcGetMethodWithTracer(method)
+			}else{
+				function = RpcGetMethodByName(method)
+			}
 			if function != nil {
-				result, err = function(ctx,req.Appid, req.SiteId, req.Token, vs["params"])
-				log.Mslog.Log("result", result)
+				result, err = function(ctx,zipkintracer,req.Appid, req.SiteId, req.Token, vs["params"])
 			} else {
 				log.Mslog.Log("error","没有找对对应的方法。")
 			}
@@ -244,6 +287,8 @@ func NewRpcxServer(options ...RpcxServerOptions) *RpcServer {
 	}
 
 	s.logger.Log("info","开始向consul注册服务...")
+
+	fmt.Printf("rpcserver=%+v\n",s)
 
 	cs := strings.Split(s.SdAddress, ",")
 	switch s.SdType {
@@ -297,6 +342,9 @@ func NewRpcxServer(options ...RpcxServerOptions) *RpcServer {
 	return s
 }
 
+func DefaultRpcServer(options ...RpcxServerOptions) {
+	defautlServer = NewRpcxServer(options...)
+}
 
 func RpcxBasePathOption( basepath string) RpcxServerOptions {
 	return func(c *RpcServer){ c.BasePath = basepath}
