@@ -2,6 +2,7 @@ package rpcx
 
 import (
 	"context"
+	"fmt"
 	"platform/mskit/log"
 	zipkin "github.com/openzipkin/zipkin-go"
 	"github.com/openzipkin/zipkin-go/model"
@@ -55,6 +56,8 @@ func (p *ZipkinTracePlugin) PostReadRequest(ctx context.Context, r *protocol.Mes
 			config.logger.Log("err", spanContext.Err)
 		}
 	}
+
+	fmt.Printf("Metadata=%+v\n",r)
 
 	span := p.tracer.StartSpan(
 		name,
