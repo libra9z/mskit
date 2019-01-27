@@ -14,29 +14,29 @@ const (
 // metadata headers to be transported to the server. ClientRequestFuncs are
 // executed after creating the request but prior to sending the gRPC request to
 // the server.
-type ClientRequestFunc func(context.Context, *MD) context.Context
+type ClientRequestFunc func(context.Context, *map[string]string) context.Context
 
 // ServerRequestFunc may take information from the received metadata header and
 // use it to place items in the request scoped context. ServerRequestFuncs are
 // executed prior to invoking the endpoint.
-type ServerRequestFunc func(context.Context, MD) context.Context
+type ServerRequestFunc func(context.Context, map[string]string) context.Context
 
 // ServerResponseFunc may take information from a request context and use it to
 // manipulate the gRPC response metadata headers and trailers. ResponseFuncs are
 // only executed in servers, after invoking the endpoint but prior to writing a
 // response.
-type ServerResponseFunc func(ctx context.Context, header *MD, trailer *MD) context.Context
+type ServerResponseFunc func(ctx context.Context, header *map[string]string, trailer *map[string]string) context.Context
 
 // ClientResponseFunc may take information from a gRPC metadata header and/or
 // trailer and make the responses available for consumption. ClientResponseFuncs
 // are only executed in clients, after a request has been made, but prior to it
 // being decoded.
-type ClientResponseFunc func(ctx context.Context, header MD, trailer MD) context.Context
+type ClientResponseFunc func(ctx context.Context, header map[string]string, trailer map[string]string) context.Context
 
 // SetRequestHeader returns a ClientRequestFunc that sets the specified metadata
 // key-value pair.
 func SetRequestHeader(key, val string) ClientRequestFunc {
-	return func(ctx context.Context, md *MD) context.Context {
+	return func(ctx context.Context, md *map[string]string) context.Context {
 		key, val := EncodeKeyValue(key, val)
 		(*md)[key] = val
 		return ctx
@@ -46,7 +46,7 @@ func SetRequestHeader(key, val string) ClientRequestFunc {
 // SetResponseHeader returns a ResponseFunc that sets the specified metadata
 // key-value pair.
 func SetResponseHeader(key, val string) ServerResponseFunc {
-	return func(ctx context.Context, md *MD, _ *MD) context.Context {
+	return func(ctx context.Context, md *map[string]string, _ *map[string]string) context.Context {
 		key, val := EncodeKeyValue(key, val)
 		(*md)[key] = val
 		return ctx
@@ -56,7 +56,7 @@ func SetResponseHeader(key, val string) ServerResponseFunc {
 // SetResponseTrailer returns a ResponseFunc that sets the specified metadata
 // key-value pair.
 func SetResponseTrailer(key, val string) ServerResponseFunc {
-	return func(ctx context.Context, _ *MD, md *MD) context.Context {
+	return func(ctx context.Context, _ *map[string]string, md *map[string]string) context.Context {
 		key, val := EncodeKeyValue(key, val)
 		(*md)[key] = val
 		return ctx

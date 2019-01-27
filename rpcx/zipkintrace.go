@@ -2,18 +2,19 @@ package rpcx
 
 import (
 	"context"
-	"platform/mskit/log"
 	"github.com/openzipkin/zipkin-go"
 	"github.com/openzipkin/zipkin-go/model"
+	"platform/mskit/log"
+	"platform/mskit/trace"
 )
 
 
-func RpcxClientTrace(tracer *zipkin.Tracer, options ...TracerOption) ClientOption {
-	config := tracerOptions{
-		tags:      make(map[string]string),
-		name:      "",
-		logger:    log.Mslog,
-		propagate: true,
+func RpcxClientZipkinTrace(tracer trace.Tracer, options ...trace.TracerOption) ClientOption {
+	config := trace.TracerOptions{
+		Tags:      make(map[string]string),
+		Name:      "",
+		Logger:    log.Mslog,
+		Propagate: true,
 	}
 
 	for _, option := range options {
@@ -21,14 +22,14 @@ func RpcxClientTrace(tracer *zipkin.Tracer, options ...TracerOption) ClientOptio
 	}
 
 	clientBefore := ClientBefore(
-		func(ctx context.Context, md *MD) context.Context {
+		func(ctx context.Context, md *map[string]string) context.Context {
 			var (
 				spanContext model.SpanContext
 				name        string
 			)
 
-			if config.name != "" {
-				name = config.name
+			if config.Name != "" {
+				name = config.Name
 			} else {
 				name = ctx.Value(ContextKeyRequestMethod).(string)
 			}
@@ -37,21 +38,17 @@ func RpcxClientTrace(tracer *zipkin.Tracer, options ...TracerOption) ClientOptio
 				spanContext = parent.Context()
 			}
 
-			span := tracer.StartSpan(
+			span := tracer.GetZipkinTracer().StartSpan(
 				name,
 				zipkin.Kind(model.Client),
-				zipkin.Tags(config.tags),
+				zipkin.Tags(config.Tags),
 				zipkin.Parent(spanContext),
 				zipkin.FlushOnFinish(false),
 			)
 
-			if config.propagate {
-				mm := make(map[string]string)
-				for k,v := range *md {
-					mm[k] = v
-				}
-				if err := InjectRpcx(&mm)(span.Context()); err != nil {
-					config.logger.Log("err", err)
+			if config.Propagate {
+				if err := trace.InjectRpcx(md)(span.Context()); err != nil {
+					config.Logger.Log("err", err)
 				}
 			}
 
@@ -60,7 +57,7 @@ func RpcxClientTrace(tracer *zipkin.Tracer, options ...TracerOption) ClientOptio
 	)
 
 	clientAfter := ClientAfter(
-		func(ctx context.Context, _ MD, _ MD) context.Context {
+		func(ctx context.Context, _ map[string]string, _ map[string]string) context.Context {
 			if span := zipkin.SpanFromContext(ctx); span != nil {
 				span.Finish()
 			}

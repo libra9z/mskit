@@ -9,6 +9,7 @@ import (
 	metrics "github.com/rcrowley/go-metrics"
 	"github.com/smallnest/rpcx/server"
 	"github.com/smallnest/rpcx/serverplugin"
+	"platform/mskit/trace"
 	"strings"
 	"platform/mskit/log"
 	"time"
@@ -19,7 +20,7 @@ const (
 	JSONRPC_ERR_METHOD_NOT_FOUND = 32601
 )
 type RpcxServerOptions func(* RpcServer)
-type Method func(context.Context,*zipkin.Tracer,int64, int64, string, interface{}) (interface{}, error)
+type Method func(context.Context,trace.Tracer,int64, int64, string, interface{}) (interface{}, error)
 
 type RpcServer struct {
 	Server *server.Server
@@ -33,18 +34,20 @@ type RpcServer struct {
 
 	Methods map[string]Method
 
-	tracer 		*zipkin.Tracer
+	//zipkinTracer 		*zipkin.Tracer
+	//tracer 		opentracing.Tracer
+	tracer 			trace.Tracer
 }
 
 var defautlServer *RpcServer
 
 type RpcRequest struct {
-	Appid  			int64
-	SiteId 			int64
-	Id     			int64 //修改某一条记录时的记录标识
-	Token  			string
-	Req    			string
-	WithTracer    	bool
+	Appid  					int64
+	SiteId 					int64
+	Id     					int64 //修改某一条记录时的记录标识
+	Token  					string
+	Req    					string
+	WithTracer    			bool
 }
 
 type RpcResponse struct {
@@ -104,10 +107,19 @@ func RpcGetMethodByName(name string) Method {
 	return nil
 }
 
-func RpcGetMethodWithTracer(name string) (Method, *zipkin.Tracer) {
+func RpcGetMethodWithTracer(name string) (Method, trace.Tracer) {
 
 	if defautlServer != nil {
 		return defautlServer.GetMethodByName(name),defautlServer.tracer
+	}
+
+	return nil,nil
+}
+
+func RpcGetMethodWithZipkinTracer(name string) (Method, *zipkin.Tracer) {
+
+	if defautlServer != nil {
+		return defautlServer.GetMethodByName(name),defautlServer.tracer.GetZipkinTracer()
 	}
 
 	return nil,nil
@@ -182,7 +194,7 @@ func (s *RpcServer) GetMethodByName(name string) Method {
 
 	return nil
 }
-func (s *RpcServer) GetMethodWithTracer(name string) (Method,*zipkin.Tracer) {
+func (s *RpcServer) GetMethodWithTracer(name string) (Method,trace.Tracer) {
 
 	if name == "" {
 		return nil,nil
@@ -231,14 +243,14 @@ func (jr *JSONRpc) Services(ctx context.Context, req *RpcRequest, ret *RpcRespon
 		log.Mslog.Log("method", method)
 		if method != "" {
 			var function Method
-			var zipkintracer *zipkin.Tracer
+			var tracer trace.Tracer
 			if req.WithTracer {
-				function,zipkintracer = RpcGetMethodWithTracer(method)
+				function,tracer = RpcGetMethodWithTracer(method)
 			}else{
 				function = RpcGetMethodByName(method)
 			}
 			if function != nil {
-				result, err = function(ctx,zipkintracer,req.Appid, req.SiteId, req.Token, vs["params"])
+				result, err = function(ctx,tracer,req.Appid, req.SiteId, req.Token, vs["params"])
 			} else {
 				log.Mslog.Log("error","没有找对对应的方法。")
 			}
@@ -336,7 +348,7 @@ func NewRpcxServer(options ...RpcxServerOptions) *RpcServer {
 
 
 	if s.tracer != nil {
-		zkp := NewZipkinTracePlugin(s.tracer)
+		zkp := serverplugin.OpenTracingPlugin{}
 		s.Server.Plugins.Add(zkp)
 	}
 	return s
@@ -361,8 +373,6 @@ func RpcxServiceAddressOption( svraddr string) RpcxServerOptions {
 func RpcxNetworkOption( network string) RpcxServerOptions {
 	return func(c *RpcServer){ c.Network = network}
 }
-
-func RpcxZipkinOption( tracer *zipkin.Tracer) RpcxServerOptions {
+func RpcxTracerOption( tracer trace.Tracer) RpcxServerOptions {
 	return func(c *RpcServer){ c.tracer = tracer}
 }
-

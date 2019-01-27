@@ -1,4 +1,4 @@
-package rpcx
+package trace
 
 
 import (
@@ -8,22 +8,22 @@ import (
 )
 
 // TracerOption allows for functional options to our Zipkin tracing middleware.
-type TracerOption func(o *tracerOptions)
+type TracerOption func(o *TracerOptions)
 
 // Name sets the name for an instrumented transport endpoint. If name is omitted
 // at tracing middleware creation, the method of the transport or transport rpc
 // name is used.
 func Name(name string) TracerOption {
-	return func(o *tracerOptions) {
-		o.name = name
+	return func(o *TracerOptions) {
+		o.Name = name
 	}
 }
 
 // Tags adds default tags to our Zipkin transport spans.
 func Tags(tags map[string]string) TracerOption {
-	return func(o *tracerOptions) {
+	return func(o *TracerOptions) {
 		for k, v := range tags {
-			o.tags[k] = v
+			o.Tags[k] = v
 		}
 	}
 }
@@ -31,9 +31,9 @@ func Tags(tags map[string]string) TracerOption {
 // Logger adds a Go kit logger to our Zipkin Middleware to log SpanContext
 // extract / inject errors if they occur. Default is Noop.
 func Logger(logger log.Logger) TracerOption {
-	return func(o *tracerOptions) {
+	return func(o *TracerOptions) {
 		if logger != nil {
-			o.logger = logger
+			o.Logger = logger
 		}
 	}
 }
@@ -46,23 +46,23 @@ func Logger(logger log.Logger) TracerOption {
 // your own platform benefit from propagation. Default for both TraceClient and
 // TraceServer is to allow propagation.
 func AllowPropagation(propagate bool) TracerOption {
-	return func(o *tracerOptions) {
-		o.propagate = propagate
+	return func(o *TracerOptions) {
+		o.Propagate = propagate
 	}
 }
 
 // RequestSampler allows one to set the sampling decision based on the details
 // found in the http.Request.
 func RequestSampler(sampleFunc func(r *http.Request) bool) TracerOption {
-	return func(o *tracerOptions) {
-		o.requestSampler = sampleFunc
+	return func(o *TracerOptions) {
+		o.RequestSampler = sampleFunc
 	}
 }
 
-type tracerOptions struct {
-	tags           map[string]string
-	name           string
-	logger         log.Logger
-	propagate      bool
-	requestSampler func(r *http.Request) bool
+type TracerOptions struct {
+	Tags           map[string]string
+	Name           string
+	Logger         log.Logger
+	Propagate      bool
+	RequestSampler func(r *http.Request) bool
 }

@@ -1,8 +1,9 @@
-package rpcx
+package trace
 
 import (
 	"context"
 	"fmt"
+	"github.com/smallnest/rpcx/share"
 	"platform/mskit/log"
 	zipkin "github.com/openzipkin/zipkin-go"
 	"github.com/openzipkin/zipkin-go/model"
@@ -13,20 +14,20 @@ type ZipkinTracePlugin struct {
 	tracer 		*zipkin.Tracer
 }
 
-func NewZipkinTracePlugin(ziptracer *zipkin.Tracer) *ZipkinTracePlugin {
+func NewZipkinTracePlugin(ziptracer Tracer) *ZipkinTracePlugin {
 	z := &ZipkinTracePlugin{
-		tracer:ziptracer,
+		tracer:ziptracer.GetZipkinTracer(),
 	}
 
 	return z
 }
 
 func (p *ZipkinTracePlugin) PostReadRequest(ctx context.Context, r *protocol.Message, e error) error {
-	config := tracerOptions{
-		tags:      make(map[string]string),
-		name:      "",
-		logger:    log.Mslog,
-		propagate: true,
+	config := TracerOptions{
+		Tags:      make(map[string]string),
+		Name:      "test",
+		Logger:    log.Mslog,
+		Propagate: true,
 	}
 
 	var (
@@ -35,38 +36,41 @@ func (p *ZipkinTracePlugin) PostReadRequest(ctx context.Context, r *protocol.Mes
 		tags        = make(map[string]string)
 	)
 
-	rpcMethod, ok := ctx.Value(ContextKeyRequestMethod).(string)
-	if !ok {
-		config.logger.Log("err", "unable to retrieve method name: missing rpcx interceptor hook")
+	m := ctx.Value(share.ReqMetaDataKey)
+
+	if m==nil {
+		//config.logger.Log("err", "unable to retrieve method name: missing rpcx interceptor hook")
 	} else {
-		tags["rpcx.method"] = rpcMethod
+		fmt.Printf("metadata=%+v\n",m.(map[string]string))
 	}
 
-	config.logger.Log("rpcx.method",rpcMethod)
+	//fmt.Printf("r.Metadata=%+v\n",r.Metadata)
 
-	if config.name != "" {
-		name = config.name
-	} else {
-		name = rpcMethod
+	if config.Name != "" {
+		name = config.Name
+	} else if m !=nil {
+		//name = rpcMethod
+		r.Metadata = m.(map[string]string)
 	}
 
-	if config.propagate {
+	if config.Propagate {
 		spanContext = p.tracer.Extract(ExtractRpcx(&r.Metadata))
 		if spanContext.Err != nil {
-			config.logger.Log("err", spanContext.Err)
+			config.Logger.Log("err", spanContext.Err)
 		}
 	}
-
-	fmt.Printf("Metadata=%+v\n",r)
 
 	span := p.tracer.StartSpan(
 		name,
 		zipkin.Kind(model.Server),
-		zipkin.Tags(config.tags),
+		zipkin.Tags(config.Tags),
 		zipkin.Tags(tags),
 		zipkin.Parent(spanContext),
 		zipkin.FlushOnFinish(false),
 	)
+	if span == nil {
+		fmt.Printf("不能开始span\n")
+	}
 	ctx = zipkin.NewContext(ctx, span)
 	return nil
 }

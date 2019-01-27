@@ -2,7 +2,6 @@ package sd
 
 import (
 	"encoding/json"
-	kitlog "github.com/go-kit/kit/log"
 	consulsd "github.com/go-kit/kit/sd/consul"
 	"github.com/hashicorp/consul/api"
 	"io/ioutil"
@@ -12,20 +11,13 @@ import (
 	"os/signal"
 	"platform/common/utils"
 	"platform/mskit/grace"
+	mslog "platform/mskit/log"
 	"reflect"
 	"strconv"
 	"strings"
 )
 
-var logger kitlog.Logger
-
-func init() {
-	//logger = kitlog.NewLogfmtLogger(os.Stdout)
-	// Logging domain.
-	logger = kitlog.NewLogfmtLogger(os.Stdout)
-	logger = kitlog.With(logger, "ts", kitlog.DefaultTimestampUTC)
-	logger = kitlog.With(logger, "caller", kitlog.DefaultCaller)
-}
+var logger = mslog.Mslog
 
 func getConsulClient(addr, schema string) consulsd.Client {
 	var client consulsd.Client

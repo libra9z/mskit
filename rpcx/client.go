@@ -108,11 +108,17 @@ func (c Client) Endpoint() endpoint.Endpoint {
 
 		ctx = context.WithValue(ctx, ContextKeyRequestMethod, c.method)
 
-		md := &MD{}
+		md := make(map[string]string)
 		for _, f := range c.before {
-			ctx = f(ctx, md)
+			ctx = f(ctx, &md)
 		}
-		ctx = NewOutgoingContext(ctx, *md)
+
+		//ctx = NewReqMetaDataContext(ctx, map[string]string(md))
+
+		traceplugin :=client.OpenTracingPlugin{}
+		pc := client.NewPluginContainer()
+		pc.Add(traceplugin)
+		c.client.SetPlugins(pc)
 
 		req := request.(*RpcRequest)
 		rpcxReply := reflect.New(c.rpcxReply).Interface()
@@ -121,7 +127,7 @@ func (c Client) Endpoint() endpoint.Endpoint {
 			return nil, err
 		}
 
-		var header, trailer MD
+		var header, trailer map[string]string
 		for _, f := range c.after {
 			ctx = f(ctx, header, trailer)
 		}

@@ -11,8 +11,7 @@ import (
 	"github.com/go-kit/kit/tracing/zipkin"
 	mshttp "github.com/go-kit/kit/transport/http"
 	"github.com/libra9z/httprouter"
-	stdopentracing "github.com/opentracing/opentracing-go"
-	stdzipkin "github.com/openzipkin/zipkin-go"
+	zipk "github.com/openzipkin/zipkin-go"
 	"io/ioutil"
 	"net"
 	"net/http"
@@ -21,6 +20,7 @@ import (
 	"os/signal"
 	"platform/mskit/log"
 	"platform/mskit/rest"
+	"platform/mskit/trace"
 	"strconv"
 	"strings"
 	"sync"
@@ -33,8 +33,7 @@ type MicroService struct {
 	Router       *httprouter.Router
 	Server       *http.Server
 	logger       log.Logger
-	tracer       stdopentracing.Tracer
-	zipkinTracer *stdzipkin.Tracer
+	tracer       trace.Tracer
 
 	GraceListener    net.Listener
 	SignalHooks      map[int]map[os.Signal][]func()
@@ -433,7 +432,7 @@ func (srv *MicroService) NewRestEndpoint(svc rest.RestService) endpoint.Endpoint
 		}
 
 		req := request.(rest.Request)
-		req.Tracer = srv.zipkinTracer
+		req.Tracer = srv.tracer
 
 		var ret interface{}
 		var err error
@@ -472,20 +471,12 @@ func (srv *MicroService) GetLogger() log.Logger {
 	return srv.logger
 }
 
-func (srv *MicroService) SetTracer(tracer stdopentracing.Tracer) {
+func (srv *MicroService) SetTracer(tracer trace.Tracer) {
 	srv.tracer = tracer
 }
 
-func (srv *MicroService) GetTracer() stdopentracing.Tracer {
+func (srv *MicroService) GetTracer() trace.Tracer {
 	return srv.tracer
-}
-
-func (srv *MicroService) SetZipkinTracer(zipkinTracer *stdzipkin.Tracer) {
-	srv.zipkinTracer = zipkinTracer
-}
-
-func (srv *MicroService) GetZipkinTracer() *stdzipkin.Tracer {
-	return srv.zipkinTracer
 }
 
 func (srv *MicroService) NewHttpHandler(withTracer bool, path string, r rest.RestService, middlewares ...rest.RestMiddleware) *mshttp.Server {
@@ -498,11 +489,20 @@ func (srv *MicroService) NewHttpHandler(withTracer bool, path string, r rest.Res
 		svc = middlewares[i].GetMiddleware()(middlewares[i].Object)(svc)
 	}
 
-	var zipkinServer mshttp.ServerOption
+	var zipkinTracer *zipk.Tracer
+
 	var options []mshttp.ServerOption
 
-	if srv.zipkinTracer != nil {
-		zipkinServer = zipkin.HTTPServerTrace(srv.zipkinTracer)
+	if srv.tracer != nil {
+		zipkinTracer=srv.tracer.GetZipkinTracer()
+		if srv.tracer.GetOpenTracer() != nil && withTracer {
+			svc = opentracing.TraceServer(srv.tracer.GetOpenTracer(), path)(svc)
+			options = append(options, mshttp.ServerBefore(opentracing.HTTPToContext(srv.tracer.GetOpenTracer(), path, srv.logger)))
+		}
+	}
+
+	if  zipkinTracer != nil {
+		zipkinServer := zipkin.HTTPServerTrace(zipkinTracer)
 		if withTracer {
 			options = []mshttp.ServerOption{
 				mshttp.ServerErrorEncoder(rest.ErrorEncoder),
@@ -522,11 +522,6 @@ func (srv *MicroService) NewHttpHandler(withTracer bool, path string, r rest.Res
 		}
 	}
 
-	if srv.tracer != nil && withTracer {
-		svc = opentracing.TraceServer(srv.tracer, path)(svc)
-		options = append(options, mshttp.ServerBefore(opentracing.HTTPToContext(srv.tracer, path, srv.logger)))
-	}
-
 	handler := mshttp.NewServer(
 		svc,
 		r.DecodeRequest,
@@ -537,7 +532,7 @@ func (srv *MicroService) NewHttpHandler(withTracer bool, path string, r rest.Res
 	return handler
 }
 
-func (srv *MicroService) RegisterServiceWithTracer(path string, rest rest.RestService, tracer stdopentracing.Tracer, logger log.Logger, middlewares ...rest.RestMiddleware) {
+func (srv *MicroService) RegisterServiceWithTracer(path string, rest rest.RestService, tracer trace.Tracer, logger log.Logger, middlewares ...rest.RestMiddleware) {
 
 	srv.SetLogger(logger)
 	srv.SetTracer(tracer)

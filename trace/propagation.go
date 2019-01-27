@@ -1,4 +1,4 @@
-package rpcx
+package trace
 
 import (
 	"github.com/openzipkin/zipkin-go/model"

@@ -3,8 +3,8 @@ package rpcx
 import (
 	"context"
 	"fmt"
-	"github.com/openzipkin/zipkin-go"
 	"github.com/smallnest/rpcx/client"
+	"platform/mskit/trace"
 	"strings"
 )
 
@@ -32,7 +32,7 @@ func RpcCallWithConsul(basepath, consuladdr, serviceName, methodName string, sel
 	return nil
 }
 
-func RpcxCall(ctx context.Context,zktracer *zipkin.Tracer,
+func RpcxCall(ctx context.Context,tracer trace.Tracer,
 			sdtype,sdaddr string,
 			basepath, serviceName,service, methodName string,
 			failMode client.FailMode,selectMode client.SelectMode,
@@ -50,7 +50,7 @@ func RpcxCall(ctx context.Context,zktracer *zipkin.Tracer,
 	options = append(options,ServiceOption(service))
 	options = append(options,ServiceNameOption(serviceName))
 
-	options = append(options,RpcxClientTrace(zktracer))
+	options = append(options,RpcxClientOpenTracing(tracer))
 
 	resp := RpcResponse{}
 	c := NewClient(&resp,options...)

@@ -2,7 +2,7 @@ package rest
 
 import (
 	"github.com/libra9z/httprouter"
-	"github.com/openzipkin/zipkin-go"
+	"platform/mskit/trace"
 	"net/http"
 	"strconv"
 )
@@ -17,7 +17,7 @@ type Request struct {
 	RemoteAddr    string
 	OriginRequest *http.Request
 	ContentType   int
-	Tracer 		  *zipkin.Tracer
+	Tracer 		  trace.Tracer
 }
 
 const (
