@@ -13,7 +13,6 @@ import (
 	"strings"
 	"platform/mskit/log"
 	"time"
-	"fmt"
 )
 
 const (
@@ -298,9 +297,9 @@ func NewRpcxServer(options ...RpcxServerOptions) *RpcServer {
 		option(s)
 	}
 
-	s.logger.Log("info","开始向consul注册服务...")
+	s.logger.Log("info","consul registering... ")
 
-	fmt.Printf("rpcserver=%+v\n",s)
+	//fmt.Printf("(options=%d)rpcserver=%+v\n",len(options),s)
 
 	cs := strings.Split(s.SdAddress, ",")
 	switch s.SdType {
