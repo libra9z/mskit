@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/go-kit/kit/metrics"
 	"github.com/libra9z/httprouter"
 	"io/ioutil"
 	"net/http"
@@ -14,6 +15,9 @@ import (
 type RestApi struct {
 	Request *http.Request
 	Router  *httprouter.Router
+	Counter		metrics.Counter
+	Gauge 		metrics.Gauge
+	Histogram 	metrics.Histogram
 }
 
 // Get adds a request function to handle GET request.
