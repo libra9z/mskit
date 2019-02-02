@@ -225,6 +225,12 @@ func RegisterWithConf(app *grace.MicroService, schema string, fname string, cons
 				}
 				if v["consul_address"] != nil {
 					m["consul_address"] = v["consul_address"]
+				}else{
+					if v["sd_address"] != nil {
+						m["consul_address"] = v["sd_address"]
+						m["sd_address"] = v["sd_address"]
+						m["sd_type"] = v["sd_type"]
+					}
 				}
 
 				go callbacks[i](app, m)
@@ -447,7 +453,12 @@ func registerService(app *grace.MicroService, schema, consul, token string, para
 	var	caddr string
 	if params["consul_address"] != nil {
 		caddr = utils.ConvertToString(params["consul_address"])
+	}else{
+		if params["sd_address"] != nil {
+			caddr = utils.ConvertToString(params["sd_address"])
+		}
 	}
+
 	if caddr != "" {
 		consul = caddr
 	}
