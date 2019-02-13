@@ -4,6 +4,7 @@ import (
 	"context"
 	"reflect"
 	"strings"
+	"sync"
 
 	"github.com/smallnest/rpcx/client"
 
@@ -26,6 +27,12 @@ type Client struct {
 	before      []ClientRequestFunc
 	after       []ClientResponseFunc
 	finalizer   []ClientFinalizerFunc
+}
+
+var ClientPool map[string]sync.Pool
+
+func init(){
+	ClientPool = make(map[string]sync.Pool)
 }
 
 // NewClient constructs a usable Client for a single remote endpoint.
@@ -53,20 +60,38 @@ func NewClient(
 		option(c)
 	}
 
-	var cs client.ServiceDiscovery
-	switch c.sdType {
-	case "consul":
-		ss := strings.Split(c.sdAddress, ";")
-		cs = client.NewConsulDiscovery(c.basePath, c.serviceName, ss, nil)
-	case "etcd":
-		ss := strings.Split(c.sdAddress, ";")
-		cs = client.NewEtcdDiscovery(c.basePath, c.serviceName, ss, nil)
-	case "zookeeper":
-		ss := strings.Split(c.sdAddress, ";")
-		cs = client.NewZookeeperDiscovery(c.basePath, c.serviceName, ss, nil)
-	}
-	c.client = client.NewXClient(c.serviceName, c.failMode, c.selectMode, cs, client.DefaultOption)
 	return c
+}
+
+// NewClient constructs a usable Client for a single remote endpoint.
+// Pass an zero-value protobuf message of the RPC response type as
+// the rpcxReply argument.
+func NewClientPool(sdtype,sdaddr,basepath, serviceName string,failMode client.FailMode,selectMode client.SelectMode) sync.Pool {
+
+	clientPool := sync.Pool{New: func() interface{} {
+		var cs client.ServiceDiscovery
+		switch sdtype {
+		case "consul":
+			ss := strings.Split(sdaddr, ";")
+			cs = client.NewConsulDiscovery(basepath, serviceName, ss, nil)
+		case "etcd":
+			ss := strings.Split(sdaddr, ";")
+			cs = client.NewEtcdDiscovery(basepath, serviceName, ss, nil)
+		case "zookeeper":
+			ss := strings.Split(sdaddr, ";")
+			cs = client.NewZookeeperDiscovery(basepath, serviceName, ss, nil)
+		}
+
+		xclient := client.NewXClient(serviceName, failMode, selectMode, cs, client.DefaultOption)
+		return xclient
+	}}
+
+	ClientPool[serviceName] = clientPool
+	return clientPool
+}
+
+func GetRpcClientPool(serviceName string) sync.Pool {
+	return ClientPool[serviceName]
 }
 
 // ClientOption sets an optional parameter for clients.
@@ -122,8 +147,7 @@ func (c Client) Endpoint() endpoint.Endpoint {
 
 		req := request.(*RpcRequest)
 		rpcxReply := reflect.New(c.rpcxReply).Interface()
-		if err = c.client.Call(
-			ctx, c.service, req, rpcxReply); err != nil {
+		if err = c.client.Call(	ctx, c.service, req, rpcxReply); err != nil {
 			return nil, err
 		}
 
@@ -137,8 +161,15 @@ func (c Client) Endpoint() endpoint.Endpoint {
 }
 
 func (c *Client)Close() error {
-	return c.client.Close()
+	pc := ClientPool[c.serviceName]
+	pc.Put(c.client)
+	return nil
 }
+
+func (c *Client)GetClientPool() sync.Pool {
+	return ClientPool[c.serviceName]
+}
+
 
 // ClientFinalizerFunc can be used to perform work at the end of a client RPCx
 // request, after the response is returned. The principal
