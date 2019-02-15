@@ -2,6 +2,7 @@ package rpcx
 
 import (
 	"context"
+	"github.com/smallnest/rpcx/share"
 	"reflect"
 	"strings"
 
@@ -106,7 +107,7 @@ func (c Client) Endpoint() endpoint.Endpoint {
 			}()
 		}
 
-		ctx = context.WithValue(ctx, ContextKeyRequestMethod, c.method)
+		ctx = context.WithValue(ctx, share.ReqMetaDataKey, map[string]string{"method": c.method})
 
 		md := make(map[string]string)
 		for _, f := range c.before {
@@ -115,10 +116,10 @@ func (c Client) Endpoint() endpoint.Endpoint {
 
 		//ctx = NewReqMetaDataContext(ctx, map[string]string(md))
 
-		traceplugin :=client.OpenTracingPlugin{}
-		pc := client.NewPluginContainer()
-		pc.Add(traceplugin)
-		c.client.SetPlugins(pc)
+		//traceplugin :=client.OpenTracingPlugin{}
+		//pc := client.NewPluginContainer()
+		//pc.Add(traceplugin)
+		//c.client.SetPlugins(pc)
 
 		req := request.(*RpcRequest)
 		rpcxReply := reflect.New(c.rpcxReply).Interface()
