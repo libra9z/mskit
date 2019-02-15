@@ -29,10 +29,11 @@ type Client struct {
 	finalizer   []ClientFinalizerFunc
 }
 
-var ClientPool map[string]sync.Pool
+var ClientPool map[string]*sync.Pool
+var lock *sync.Mutex = &sync.Mutex {}
 
 func init(){
-	ClientPool = make(map[string]sync.Pool)
+	ClientPool = make(map[string]*sync.Pool)
 }
 
 // NewClient constructs a usable Client for a single remote endpoint.
@@ -66,7 +67,7 @@ func NewClient(
 // NewClient constructs a usable Client for a single remote endpoint.
 // Pass an zero-value protobuf message of the RPC response type as
 // the rpcxReply argument.
-func NewClientPool(sdtype,sdaddr,basepath, serviceName string,failMode client.FailMode,selectMode client.SelectMode) sync.Pool {
+func NewClientPool(sdtype,sdaddr,basepath, serviceName string,failMode client.FailMode,selectMode client.SelectMode) *sync.Pool {
 
 	clientPool := sync.Pool{New: func() interface{} {
 		var cs client.ServiceDiscovery
@@ -86,11 +87,11 @@ func NewClientPool(sdtype,sdaddr,basepath, serviceName string,failMode client.Fa
 		return xclient
 	}}
 
-	ClientPool[serviceName] = clientPool
-	return clientPool
+	ClientPool[serviceName] = &clientPool
+	return &clientPool
 }
 
-func GetRpcClientPool(serviceName string) sync.Pool {
+func GetRpcClientPool(serviceName string) *sync.Pool {
 	return ClientPool[serviceName]
 }
 
@@ -166,7 +167,18 @@ func (c *Client)Close() error {
 	return nil
 }
 
-func (c *Client)GetClientPool() sync.Pool {
+func (c *Client)GetClientPool() *sync.Pool {
+
+	if pc,ok :=  ClientPool[c.serviceName];ok {
+		return pc
+	}else{
+		lock.Lock()
+		defer lock.Unlock()
+		if ClientPool[c.serviceName] == nil {
+			ClientPool[c.serviceName] = NewClientPool(c.sdType,c.sdAddress,c.basePath,c.serviceName,c.failMode,c.selectMode)
+		}
+	}
+
 	return ClientPool[c.serviceName]
 }
 
