@@ -4,10 +4,10 @@ import (
 	"fmt"
 	"github.com/go-kit/kit/log"
 	"github.com/libra9z/httprouter"
-	stdopentracing "github.com/opentracing/opentracing-go"
 	"net/http"
 	"platform/mskit/grace"
 	. "platform/mskit/rest"
+	"platform/mskit/trace"
 )
 
 var (
@@ -33,7 +33,7 @@ func RegisterRestService(path string, rest RestService, middlewares ...RestMiddl
 	MsRest.RegisterRestService(path, rest, middlewares...)
 }
 
-func RegisterServiceWithTracer(path string, rest RestService, tracer stdopentracing.Tracer, logger log.Logger, middlewares ...RestMiddleware) {
+func RegisterServiceWithTracer(path string, rest RestService, tracer trace.Tracer, logger log.Logger, middlewares ...RestMiddleware) {
 	MsRest.RegisterServiceWithTracer(path, rest, tracer, logger, middlewares...)
 }
 
