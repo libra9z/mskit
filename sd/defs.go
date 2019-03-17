@@ -3,7 +3,7 @@ package sd
 import (
 	"github.com/hashicorp/consul/api"
 	"platform/common/utils"
-	"platform/mskit/grace"
+	"github.com/libra9z/mskit/grace"
 )
 
 const (

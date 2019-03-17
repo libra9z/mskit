@@ -2,7 +2,7 @@ package sd
 
 import (
 	"platform/common/utils"
-	"platform/mskit/grace"
+	"github.com/libra9z/mskit/grace"
 )
 
 type Registar interface {

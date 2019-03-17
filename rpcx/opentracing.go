@@ -4,8 +4,8 @@ import (
 	"context"
 	"github.com/opentracing/opentracing-go"
 	"github.com/smallnest/rpcx/share"
-	"platform/mskit/log"
-	"platform/mskit/trace"
+	"github.com/libra9z/mskit/log"
+	"github.com/libra9z/mskit/trace"
 )
 
 

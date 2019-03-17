@@ -5,9 +5,9 @@ import (
 	"github.com/go-kit/kit/log"
 	"github.com/libra9z/httprouter"
 	"net/http"
-	"platform/mskit/grace"
-	. "platform/mskit/rest"
-	"platform/mskit/trace"
+	"github.com/libra9z/mskit/grace"
+	. "github.com/libra9z/mskit/rest"
+	"github.com/libra9z/mskit/trace"
 )
 
 var (

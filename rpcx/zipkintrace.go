@@ -4,8 +4,8 @@ import (
 	"context"
 	"github.com/openzipkin/zipkin-go"
 	"github.com/openzipkin/zipkin-go/model"
-	"platform/mskit/log"
-	"platform/mskit/trace"
+	"github.com/libra9z/mskit/log"
+	"github.com/libra9z/mskit/trace"
 )
 
 
