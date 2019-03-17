@@ -1,4 +1,4 @@
-module platform/mskit
+module github.com/libra9z/mskit
 
 require (
 	github.com/go-kit/kit v0.8.0
