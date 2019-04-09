@@ -565,3 +565,11 @@ func regRoute(r *httprouter.Router, path string, handler http.Handler) {
 	r.Handler("OPTIONS", path, handler)
 	r.Handler("TRACE", path, handler)
 }
+
+func (srv *MicroService)ServeFiles(path string, root http.FileSystem) {
+	if srv.Router != nil {
+		srv.Router.ServeFiles(path, root)
+	} else {
+		fmt.Printf("no rest service avaliable.\n")
+	}
+}
