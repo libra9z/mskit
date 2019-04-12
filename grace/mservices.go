@@ -479,6 +479,10 @@ func (srv *MicroService) GetTracer() trace.Tracer {
 	return srv.tracer
 }
 
+func (srv *MicroService) RegisterSwaggerDoc(path string, handler http.HandlerFunc)  {
+	srv.Router.HandlerFunc("GET",path,handler)
+}
+
 func (srv *MicroService) NewHttpHandler(withTracer bool, path string, r rest.RestService, middlewares ...rest.RestMiddleware) *mshttp.Server {
 
 	r.SetRouter(srv.Router)
