@@ -60,9 +60,7 @@ func RpcxCall(ctx context.Context,tracer trace.Tracer,
 
 	r,err := c.Endpoint()(ctx,req)
 	if r != nil {
-		pc.Put(c.client)
 		return  r.(*RpcResponse),err
 	}
-	pc.Put(c.client)
 	return nil,err
 }

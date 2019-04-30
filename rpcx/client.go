@@ -24,17 +24,18 @@ type Client struct {
 	sdType      string
 	sdAddress   string
 	basePath    string
+	poolsize	int
 	rpcxReply   reflect.Type
 	before      []ClientRequestFunc
 	after       []ClientResponseFunc
 	finalizer   []ClientFinalizerFunc
 }
 
-var ClientPool map[string]*sync.Pool
+var ClientPool map[string]*client.XClientPool
 var lock *sync.Mutex = &sync.Mutex {}
 
 func init(){
-	ClientPool = make(map[string]*sync.Pool)
+	ClientPool = make(map[string]*client.XClientPool)
 }
 
 // NewClient constructs a usable Client for a single remote endpoint.
@@ -62,37 +63,36 @@ func NewClient(
 		option(c)
 	}
 
+	if c.poolsize <= 0 {
+		c.poolsize = 100
+	}
 	return c
 }
 
 // NewClient constructs a usable Client for a single remote endpoint.
 // Pass an zero-value protobuf message of the RPC response type as
 // the rpcxReply argument.
-func NewClientPool(sdtype,sdaddr,basepath, serviceName string,failMode client.FailMode,selectMode client.SelectMode) *sync.Pool {
+func NewClientPool(size int,sdtype,sdaddr,basepath, serviceName string,failMode client.FailMode,selectMode client.SelectMode) *client.XClientPool {
 
-	clientPool := sync.Pool{New: func() interface{} {
-		var cs client.ServiceDiscovery
-		switch sdtype {
-		case "consul":
-			ss := strings.Split(sdaddr, ";")
-			cs = client.NewConsulDiscovery(basepath, serviceName, ss, nil)
-		case "etcd":
-			ss := strings.Split(sdaddr, ";")
-			cs = client.NewEtcdDiscovery(basepath, serviceName, ss, nil)
-		case "zookeeper":
-			ss := strings.Split(sdaddr, ";")
-			cs = client.NewZookeeperDiscovery(basepath, serviceName, ss, nil)
-		}
+	var cs client.ServiceDiscovery
+	switch sdtype {
+	case "consul":
+		ss := strings.Split(sdaddr, ";")
+		cs = client.NewConsulDiscovery(basepath, serviceName, ss, nil)
+	case "etcd":
+		ss := strings.Split(sdaddr, ";")
+		cs = client.NewEtcdDiscovery(basepath, serviceName, ss, nil)
+	case "zookeeper":
+		ss := strings.Split(sdaddr, ";")
+		cs = client.NewZookeeperDiscovery(basepath, serviceName, ss, nil)
+	}
+	xclient := client.NewXClientPool(size, serviceName, failMode, selectMode, cs, client.DefaultOption)
 
-		xclient := client.NewXClient(serviceName, failMode, selectMode, cs, client.DefaultOption)
-		return xclient
-	}}
-
-	ClientPool[serviceName] = &clientPool
-	return &clientPool
+	ClientPool[serviceName] = xclient
+	return xclient
 }
 
-func GetRpcClientPool(serviceName string) *sync.Pool {
+func GetRpcClientPool(serviceName string) *client.XClientPool {
 	return ClientPool[serviceName]
 }
 
@@ -164,11 +164,12 @@ func (c Client) Endpoint() endpoint.Endpoint {
 
 func (c *Client)Close() error {
 	pc := ClientPool[c.serviceName]
-	pc.Put(c.client)
+	pc.Close()
+
 	return nil
 }
 
-func (c *Client)GetClientPool() *sync.Pool {
+func (c *Client)GetClientPool() *client.XClientPool {
 
 	if pc,ok :=  ClientPool[c.serviceName];ok {
 		return pc
@@ -176,7 +177,7 @@ func (c *Client)GetClientPool() *sync.Pool {
 		lock.Lock()
 		defer lock.Unlock()
 		if ClientPool[c.serviceName] == nil {
-			ClientPool[c.serviceName] = NewClientPool(c.sdType,c.sdAddress,c.basePath,c.serviceName,c.failMode,c.selectMode)
+			ClientPool[c.serviceName] = NewClientPool(c.poolsize,c.sdType,c.sdAddress,c.basePath,c.serviceName,c.failMode,c.selectMode)
 		}
 	}
 
@@ -216,4 +217,8 @@ func ServiceOption( service string) ClientOption {
 }
 func ServiceNameOption( svrname string) ClientOption {
 	return func(c *Client){ c.serviceName = svrname}
+}
+
+func PoolSizeOption( poolsize int) ClientOption {
+	return func(c *Client){ c.poolsize = poolsize}
 }
