@@ -56,7 +56,7 @@ func RpcxCall(ctx context.Context,tracer trace.Tracer,
 	c := NewClient(&resp,options...)
 	pc := c.GetClientPool()
 	c.client = pc.Get().(client.XClient)
-	defer c.Close()
+	//defer c.Close()
 
 	r,err := c.Endpoint()(ctx,req)
 	if r != nil {
