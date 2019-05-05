@@ -6,6 +6,7 @@ import (
 	"reflect"
 	"strings"
 	"sync"
+	"fmt"
 
 	"github.com/smallnest/rpcx/client"
 
@@ -74,6 +75,13 @@ func NewClient(
 // the rpcxReply argument.
 func NewClientPool(size int,sdtype,sdaddr,basepath, serviceName string,failMode client.FailMode,selectMode client.SelectMode) *client.XClientPool {
 
+	defer func(){
+		if e:=recover();e!=nil {
+			fmt.Printf("error = %v\n",e)
+			return
+		}
+	}()
+	
 	var cs client.ServiceDiscovery
 	switch sdtype {
 	case "consul":
