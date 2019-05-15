@@ -4,14 +4,14 @@ import (
 	"encoding/json"
 	consulsd "github.com/go-kit/kit/sd/consul"
 	"github.com/hashicorp/consul/api"
+	"github.com/libra9z/mskit/grace"
+	mslog "github.com/libra9z/mskit/log"
+	"github.com/libra9z/utils"
 	"io/ioutil"
 	"log"
 	"net"
 	"os"
 	"os/signal"
-	"platform/common/utils"
-	"github.com/libra9z/mskit/grace"
-	mslog "github.com/libra9z/mskit/log"
 	"reflect"
 	"strconv"
 	"strings"
@@ -225,7 +225,7 @@ func RegisterWithConf(app *grace.MicroService, schema string, fname string, cons
 				}
 				if v["consul_address"] != nil {
 					m["consul_address"] = v["consul_address"]
-				}else{
+				} else {
 					if v["sd_address"] != nil {
 						m["consul_address"] = v["sd_address"]
 						m["sd_address"] = v["sd_address"]
@@ -450,10 +450,10 @@ func registerService(app *grace.MicroService, schema, consul, token string, para
 		service.Connect = &proxy
 	}
 
-	var	caddr string
+	var caddr string
 	if params["consul_address"] != nil {
 		caddr = utils.ConvertToString(params["consul_address"])
-	}else{
+	} else {
 		if params["sd_address"] != nil {
 			caddr = utils.ConvertToString(params["sd_address"])
 		}
