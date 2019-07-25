@@ -11,6 +11,9 @@ import (
 	"github.com/go-kit/kit/tracing/zipkin"
 	mshttp "github.com/go-kit/kit/transport/http"
 	"github.com/libra9z/httprouter"
+	"github.com/libra9z/mskit/log"
+	"github.com/libra9z/mskit/rest"
+	"github.com/libra9z/mskit/trace"
 	zipk "github.com/openzipkin/zipkin-go"
 	"io/ioutil"
 	"net"
@@ -18,9 +21,6 @@ import (
 	"os"
 	"os/exec"
 	"os/signal"
-	"github.com/libra9z/mskit/log"
-	"github.com/libra9z/mskit/rest"
-	"github.com/libra9z/mskit/trace"
 	"strconv"
 	"strings"
 	"sync"
@@ -30,10 +30,10 @@ import (
 
 // App defines msrest application with a new PatternServeMux.
 type MicroService struct {
-	Router       *httprouter.Router
-	Server       *http.Server
-	logger       log.Logger
-	tracer       trace.Tracer
+	Router *httprouter.Router
+	Server *http.Server
+	logger log.Logger
+	tracer trace.Tracer
 
 	GraceListener    net.Listener
 	SignalHooks      map[int]map[os.Signal][]func()
@@ -57,11 +57,12 @@ type MicroService struct {
  */
 func (srv *MicroService) Serve(params ...string) (err error) {
 
-	if srv.Server.Addr == "" {
-		if len(params) < 2 {
+	if len(params) < 2 {
+		if srv.Server.Addr == "" {
 			fmt.Printf("err: no host port parameters set.\n")
 			return
 		}
+	} else {
 		srv.Server.Addr = params[0] + ":" + params[1]
 	}
 
@@ -479,8 +480,8 @@ func (srv *MicroService) GetTracer() trace.Tracer {
 	return srv.tracer
 }
 
-func (srv *MicroService) RegisterSwaggerDoc(path string, handler http.HandlerFunc)  {
-	srv.Router.HandlerFunc("GET",path,handler)
+func (srv *MicroService) RegisterSwaggerDoc(path string, handler http.HandlerFunc) {
+	srv.Router.HandlerFunc("GET", path, handler)
 }
 
 func (srv *MicroService) NewHttpHandler(withTracer bool, path string, r rest.RestService, middlewares ...rest.RestMiddleware) *mshttp.Server {
@@ -498,14 +499,14 @@ func (srv *MicroService) NewHttpHandler(withTracer bool, path string, r rest.Res
 	var options []mshttp.ServerOption
 
 	if srv.tracer != nil {
-		zipkinTracer=srv.tracer.GetZipkinTracer()
+		zipkinTracer = srv.tracer.GetZipkinTracer()
 		if srv.tracer.GetOpenTracer() != nil && withTracer {
 			svc = opentracing.TraceServer(srv.tracer.GetOpenTracer(), path)(svc)
 			options = append(options, mshttp.ServerBefore(opentracing.HTTPToContext(srv.tracer.GetOpenTracer(), path, srv.logger)))
 		}
 	}
 
-	if  zipkinTracer != nil {
+	if zipkinTracer != nil {
 		zipkinServer := zipkin.HTTPServerTrace(zipkinTracer)
 		if withTracer {
 			options = []mshttp.ServerOption{
@@ -570,7 +571,7 @@ func regRoute(r *httprouter.Router, path string, handler http.Handler) {
 	r.Handler("TRACE", path, handler)
 }
 
-func (srv *MicroService)ServeFiles(path string, root http.FileSystem) {
+func (srv *MicroService) ServeFiles(path string, root http.FileSystem) {
 	if srv.Router != nil {
 		srv.Router.ServeFiles(path, root)
 	} else {
