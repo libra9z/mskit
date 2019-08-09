@@ -9,6 +9,7 @@ import (
 
 type Request struct {
 	IsAuthorized  bool
+	LicExpired    bool
 	Version       string
 	Params        httprouter.Params
 	Queries       map[string]interface{}
