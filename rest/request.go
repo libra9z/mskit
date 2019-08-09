@@ -17,7 +17,8 @@ type Request struct {
 	RemoteAddr    string
 	OriginRequest *http.Request
 	ContentType   int
-	Tracer 		  trace.Tracer
+	Tracer        trace.Tracer
+	AuthedOrgids  []int64
 }
 
 const (
