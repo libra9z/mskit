@@ -51,6 +51,7 @@ func RpcxCall(ctx context.Context,tracer trace.Tracer,
 	options = append(options,ServiceNameOption(serviceName))
 
 	options = append(options,RpcxClientOpenTracing(tracer))
+	//options = append(options,RpcxClientZipkinTrace(tracer))
 
 	resp := RpcResponse{}
 	c := NewClient(&resp,options...)

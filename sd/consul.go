@@ -17,6 +17,79 @@ import (
 	"strings"
 )
 
+/**
+
+{
+  "service": {
+    "id": "redis",
+    "name": "redis",
+    "tags": ["primary"],
+    "address": "",
+    "meta": {
+      "meta": "for my service"
+    },
+    "tagged_addresses": {
+      "lan": {
+        "address": "192.168.0.55",
+        "port": 8000,
+      },
+      "wan": {
+        "address": "198.18.0.23",
+        "port": 80
+      }
+    },
+    "port": 8000,
+    "enable_tag_override": false,
+    "checks": [
+      {
+        "args": ["/usr/local/bin/check_redis.py"],
+        "interval": "10s"
+      }
+    ],
+    "kind": "connect-proxy",
+    "proxy_destination": "redis", // Deprecated
+    "proxy": {
+      "destination_service_name": "redis",
+      "destination_service_id": "redis1",
+      "local_service_address": "127.0.0.1",
+      "local_service_port": 9090,
+      "config": {},
+      "upstreams": [],
+      "mesh_gateway": {
+        "mode": "local"
+      },
+      "expose": {
+        "checks": true,
+        "paths": [
+          {
+            "path": "/healthz",
+            "local_path_port": 8080,
+            "listener_port": 21500,
+            "protocol": "http2"
+          }
+       ]
+      }
+    },
+    "connect": {
+      "native": false,
+      "sidecar_service": {}
+      "proxy": {  // Deprecated
+        "command": [],
+        "config": {}
+      }
+    },
+    "weights": {
+      "passing": 5,
+      "warning": 1
+    },
+    "token": "233b604b-b92e-48c8-a253-5f11514e4b50",
+    "namespace": "foo"
+  }
+}
+
+*/
+
+
 var logger = mslog.Mslog
 
 func getConsulClient(addr, schema string) consulsd.Client {
@@ -409,9 +482,9 @@ func registerService(app *grace.MicroService, schema, consul, token string, para
 		service.Meta = m
 	}
 
-	if params["proxy_destination"] != nil {
-		service.ProxyDestination = utils.ConvertToString(params["proxy_destination"])
-	}
+	//if params["proxy_destination"] != nil {
+	//	service.ProxyDestination = utils.ConvertToString(params["proxy_destination"])
+	//}
 
 	if params["enable_tag_override"] != nil {
 		service.EnableTagOverride = params["enable_tag_override"].(bool)
@@ -422,32 +495,15 @@ func registerService(app *grace.MicroService, schema, consul, token string, para
 	}
 
 	if params["connect"] != nil {
-		var proxy api.AgentServiceConnect
+		var connect api.AgentServiceConnect
 
 		p := params["connect"].(map[string]interface{})
 
 		if p["native"] != nil {
-			proxy.Native = p["native"].(bool)
+			connect.Native = p["native"].(bool)
 		}
 
-		if p["proxy"] != nil {
-			v := p["proxy"].(map[string]interface{})
-			var c api.AgentServiceConnectProxy
-			if v["config"] != nil {
-				c.Config = v["config"].(map[string]interface{})
-			}
-			if v["command"] != nil {
-				vs := v["command"].([]interface{})
-
-				for _, s := range vs {
-					c.Command = append(c.Command, utils.ConvertToString(s))
-				}
-			}
-
-			proxy.Proxy = &c
-		}
-
-		service.Connect = &proxy
+		service.Connect = &connect
 	}
 
 	var caddr string
