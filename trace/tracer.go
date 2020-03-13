@@ -1,6 +1,7 @@
 package trace
 
 import (
+	"context"
 	"github.com/opentracing/opentracing-go"
 	"github.com/openzipkin/zipkin-go"
 )
@@ -8,11 +9,14 @@ import (
 type Tracer interface {
 	GetOpenTracer()(opentracing.Tracer)
 	GetZipkinTracer()(*zipkin.Tracer)
+	GetServiceName()(string)
+	StartSpanFromContext(name string,ctx context.Context) (opentracing.Span,context.Context)
 }
 
 type trace struct {
 	withTracer 			bool
 	withZipkinTracer 	bool
+	ServiceName		 	string
 	tracer 				opentracing.Tracer
 	zipkinTracer		*zipkin.Tracer
 }
@@ -26,6 +30,10 @@ func WithZipkinTracerOption(istracer bool) TraceOption {
 	return func(t *trace){t.withZipkinTracer = istracer}
 }
 
+func WithServiceNameOption(serviceName string) TraceOption {
+	return func(t *trace){t.ServiceName = serviceName}
+}
+
 func OpenTracerOption(tracer opentracing.Tracer) TraceOption {
 	return func(t *trace){t.tracer = tracer}
 }
@@ -37,6 +45,14 @@ func(t *trace)GetOpenTracer() opentracing.Tracer{
 }
 func(t *trace)GetZipkinTracer() *zipkin.Tracer{
 	return t.zipkinTracer
+}
+
+func(t *trace)StartSpanFromContext(name string,ctx context.Context) (opentracing.Span,context.Context) {
+	return opentracing.StartSpanFromContext(ctx,name)
+}
+
+func(t *trace)GetServiceName() string{
+	return t.ServiceName
 }
 
 func NewTracer(options... TraceOption) Tracer {

@@ -1,6 +1,7 @@
 package trace
 
 import (
+	"github.com/libra9z/mskit/metadata"
 	"github.com/openzipkin/zipkin-go/model"
 	"github.com/openzipkin/zipkin-go/propagation"
 	. "github.com/openzipkin/zipkin-go/propagation/b3"
@@ -8,7 +9,7 @@ import (
 
 // ExtractRpcx will extract a span.Context from the Rpcx Request metadata if
 // found in B3 header format.
-func ExtractRpcx(md *map[string]string) propagation.Extractor {
+func ExtractRpcx(md *metadata.MD) propagation.Extractor {
 	return func() (*model.SpanContext, error) {
 		var (
 			traceIDHeader      = GetRpcxHeader(md, TraceID)
@@ -26,7 +27,7 @@ func ExtractRpcx(md *map[string]string) propagation.Extractor {
 }
 
 // InjectRpcx will inject a span.Context into Rpcx metadata.
-func InjectRpcx(md *map[string]string) propagation.Injector {
+func InjectRpcx(md *metadata.MD) propagation.Injector {
 	return func(sc model.SpanContext) error {
 		if (model.SpanContext{}) == sc {
 			return ErrEmptyContext
@@ -59,11 +60,11 @@ func InjectRpcx(md *map[string]string) propagation.Injector {
 
 // GetGRPCHeader retrieves the last value found for a particular key. If key is
 // not found it returns an empty string.
-func GetRpcxHeader(md *map[string]string, key string) string {
+func GetRpcxHeader(md *metadata.MD, key string) string {
 	v := (*md)[key]
 	return v
 }
 
-func setRpcxHeader(md *map[string]string, key, value string) {
+func setRpcxHeader(md *metadata.MD, key, value string) {
 	(*md)[key] = value
 }

@@ -3,6 +3,7 @@ package trace
 import (
 	"context"
 	"fmt"
+	"github.com/libra9z/mskit/metadata"
 	"github.com/smallnest/rpcx/share"
 	"github.com/libra9z/mskit/log"
 	zipkin "github.com/openzipkin/zipkin-go"
@@ -54,7 +55,12 @@ func (p *ZipkinTracePlugin) PostReadRequest(ctx context.Context, r *protocol.Mes
 	}
 
 	if config.Propagate {
-		spanContext = p.tracer.Extract(ExtractRpcx(&r.Metadata))
+		var md metadata.MD
+		md = make(metadata.MD)
+		for k,v := range r.Metadata{
+			md[k] =v
+		}
+		spanContext = p.tracer.Extract(ExtractRpcx(&md))
 		if spanContext.Err != nil {
 			config.Logger.Log("err", spanContext.Err)
 		}

@@ -1,37 +1,104 @@
-package trace
+
+// for more information about custom-metadata.
+package metadata
 
 import (
 	"context"
 	"fmt"
-	"github.com/smallnest/rpcx/share"
 	"strings"
 )
 
+// DecodeKeyValue returns k, v, nil.
+//
+// Deprecated: use k and v directly instead.
+func DecodeKeyValue(k, v string) (string, string, error) {
+	return k, v, nil
+}
 
-func Pairs(kv ...string) map[string]string {
+// MD is a mapping from metadata keys to values. Users should use the following
+// two convenience functions New and Pairs to generate MD.
+type MD map[string]string
+
+// New creates an MD from a given key-value map.
+//
+// Only the following ASCII characters are allowed in keys:
+//  - digits: 0-9
+//  - uppercase letters: A-Z (normalized to lower)
+//  - lowercase letters: a-z
+//  - special characters: -_.
+// Uppercase letters are automatically converted to lowercase.
+//
+
+// result in errors if set in metadata.
+func New(m map[string]string) MD {
+	md := MD{}
+	for k, val := range m {
+		key := strings.ToLower(k)
+		md[key] =  val
+	}
+	return md
+}
+
+// Pairs returns an MD formed by the mapping of key, value ...
+// Pairs panics if len(kv) is odd.
+//
+// Only the following ASCII characters are allowed in keys:
+//  - digits: 0-9
+//  - uppercase letters: A-Z (normalized to lower)
+//  - lowercase letters: a-z
+//  - special characters: -_.
+// Uppercase letters are automatically converted to lowercase.
+//
+
+// result in errors if set in metadata.
+func Pairs(kv ...string) MD {
 	if len(kv)%2 == 1 {
 		panic(fmt.Sprintf("metadata: Pairs got the odd number of input pairs for metadata: %d", len(kv)))
 	}
-	md := map[string]string{}
+	md := MD{}
 	var key string
 	for i, s := range kv {
 		if i%2 == 0 {
 			key = strings.ToLower(s)
 			continue
 		}
-		md[key] =  s
+		md[key] = s
 	}
 	return md
 }
 
+// Len returns the number of items in md.
+func (md MD) Len() int {
+	return len(md)
+}
+
+// Copy returns a copy of md.
+func (md MD) Copy() MD {
+	return Join(md)
+}
+
+// Get obtains the values for a given key.
+func (md MD) Get(k string) string {
+	k = strings.ToLower(k)
+	return md[k]
+}
+
+// Set sets the value of a given key with a  value.
+func (md MD) Set(k string, vals string) {
+	if len(vals) == 0 {
+		return
+	}
+	k = strings.ToLower(k)
+	md[k] = vals
+}
+
+
 // Join joins any number of mds into a single MD.
-// The order of values for each key is determined by the order in which
-// the mds containing those values are presented to Join.
-func Join(mds ...map[string]string) map[string]string {
-	out := map[string]string{}
+func Join(mds ...MD) MD {
+	out := MD{}
 	for _, md := range mds {
 		for k, v := range md {
-			out[k] = v
+			out[k] =  v
 		}
 	}
 	return out
@@ -41,15 +108,15 @@ type mdIncomingKey struct{}
 type mdOutgoingKey struct{}
 
 // NewIncomingContext creates a new context with incoming md attached.
-func NewIncomingContext(ctx context.Context, md map[string]string) context.Context {
+func NewIncomingContext(ctx context.Context, md MD) context.Context {
 	return context.WithValue(ctx, mdIncomingKey{}, md)
 }
 
 // NewOutgoingContext creates a new context with outgoing md attached. If used
 // in conjunction with AppendToOutgoingContext, NewOutgoingContext will
 // overwrite any previously-appended metadata.
-func NewReqMetaDataContext(ctx context.Context, md map[string]string) context.Context {
-	return context.WithValue(ctx,share.ReqMetaDataKey,md)
+func NewOutgoingContext(ctx context.Context, md MD) context.Context {
+	return context.WithValue(ctx, mdOutgoingKey{}, rawMD{md: md})
 }
 
 // AppendToOutgoingContext returns a new context with the provided kv merged
@@ -70,8 +137,8 @@ func AppendToOutgoingContext(ctx context.Context, kv ...string) context.Context 
 // FromIncomingContext returns the incoming metadata in ctx if it exists.  The
 // returned MD should not be modified. Writing to it may cause races.
 // Modification should be made to copies of the returned MD.
-func FromIncomingContext(ctx context.Context) (md map[string]string, ok bool) {
-	md, ok = ctx.Value(mdIncomingKey{}).(map[string]string)
+func FromIncomingContext(ctx context.Context) (md MD, ok bool) {
+	md, ok = ctx.Value(mdIncomingKey{}).(MD)
 	return
 }
 
@@ -80,8 +147,8 @@ func FromIncomingContext(ctx context.Context) (md map[string]string, ok bool) {
 // MD should not be modified. Writing to it may cause races. Modification
 // should be made to copies of the returned MD.
 //
-// This is intended for gRPC-internal use ONLY.
-func FromOutgoingContextRaw(ctx context.Context) (map[string]string, [][]string, bool) {
+
+func FromOutgoingContextRaw(ctx context.Context) (MD, [][]string, bool) {
 	raw, ok := ctx.Value(mdOutgoingKey{}).(rawMD)
 	if !ok {
 		return nil, nil, false
@@ -93,13 +160,13 @@ func FromOutgoingContextRaw(ctx context.Context) (map[string]string, [][]string,
 // FromOutgoingContext returns the outgoing metadata in ctx if it exists.  The
 // returned MD should not be modified. Writing to it may cause races.
 // Modification should be made to copies of the returned MD.
-func FromOutgoingContext(ctx context.Context) (map[string]string, bool) {
+func FromOutgoingContext(ctx context.Context) (MD, bool) {
 	raw, ok := ctx.Value(mdOutgoingKey{}).(rawMD)
 	if !ok {
 		return nil, false
 	}
 
-	mds := make([]map[string]string, 0, len(raw.added)+1)
+	mds := make([]MD, 0, len(raw.added)+1)
 	mds = append(mds, raw.md)
 	for _, vv := range raw.added {
 		mds = append(mds, Pairs(vv...))
@@ -108,6 +175,6 @@ func FromOutgoingContext(ctx context.Context) (map[string]string, bool) {
 }
 
 type rawMD struct {
-	md    map[string]string
+	md    MD
 	added [][]string
 }

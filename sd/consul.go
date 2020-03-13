@@ -482,10 +482,6 @@ func registerService(app *grace.MicroService, schema, consul, token string, para
 		service.Meta = m
 	}
 
-	//if params["proxy_destination"] != nil {
-	//	service.ProxyDestination = utils.ConvertToString(params["proxy_destination"])
-	//}
-
 	if params["enable_tag_override"] != nil {
 		service.EnableTagOverride = params["enable_tag_override"].(bool)
 	}

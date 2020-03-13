@@ -2,6 +2,7 @@ package rpcx
 
 import (
 	"context"
+	"github.com/libra9z/mskit/metadata"
 	"github.com/openzipkin/zipkin-go"
 	"github.com/openzipkin/zipkin-go/model"
 	"github.com/libra9z/mskit/log"
@@ -47,7 +48,12 @@ func RpcxClientZipkinTrace(tracer trace.Tracer, options ...trace.TracerOption) C
 			)
 
 			if config.Propagate {
-				if err := trace.InjectRpcx(md)(span.Context()); err != nil {
+				var vmd metadata.MD
+				vmd = make(metadata.MD)
+				for k,v := range *md {
+					vmd[k] = v
+				}
+				if err := trace.InjectRpcx(&vmd)(span.Context()); err != nil {
 					config.Logger.Log("err", err)
 				}
 			}
