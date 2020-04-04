@@ -25,6 +25,9 @@ func RpcxClientOpenTracing(tracer trace.Tracer, options ...trace.TracerOption) C
 	clientBefore := ClientBefore(
 		func(ctx context.Context, mmd *map[string]string) context.Context {
 			ctx = context.WithValue(ctx,share.ReqMetaDataKey,*mmd)
+			if tracer == nil {
+				return ctx
+			}
 			if span := opentracing.SpanFromContext(ctx); span != nil {
 				// There's nothing we can do with an error here.
 				var md metadata.MD
@@ -35,7 +38,7 @@ func RpcxClientOpenTracing(tracer trace.Tracer, options ...trace.TracerOption) C
 				if err := tracer.GetOpenTracer().Inject(span.Context(), opentracing.TextMap, metadataReaderWriter{&md}); err != nil {
 					config.Logger.Log("err", err)
 				}
-			}else{
+			}else {
 				span,ctx = tracer.StartSpanFromContext(tracer.GetServiceName(),ctx)
 			}
 			return ctx

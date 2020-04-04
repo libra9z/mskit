@@ -10,6 +10,7 @@ import (
 	"github.com/smallnest/rpcx/server"
 	"github.com/smallnest/rpcx/serverplugin"
 	"github.com/libra9z/mskit/trace"
+	"github.com/opentracing/opentracing-go"
 	"strings"
 	"github.com/libra9z/mskit/log"
 	"time"
@@ -297,6 +298,10 @@ func NewRpcxServer(options ...RpcxServerOptions) *RpcServer {
 
 	for _,option := range options {
 		option(s)
+	}
+
+	if s.tracer != nil {
+		opentracing.SetGlobalTracer(s.tracer.GetOpenTracer())
 	}
 
 	s.logger.Log("info","consul registering... ")

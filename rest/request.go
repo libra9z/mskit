@@ -18,6 +18,7 @@ type Request struct {
 	RemoteAddr    string
 	OriginRequest *http.Request
 	ContentType   int
+	Userid		  string  //admin user prefix with 'a' ,user table prefix with 'u'
 	Tracer        trace.Tracer
 	AuthedOrgids  []int64
 }
@@ -28,6 +29,7 @@ const (
 	CONTENT_TYPE_XML       = 2
 	CONTENT_TYPE_JSON      = 3
 	CONTENT_TYPE_MULTIFORM = 4
+	CONTENT_TYPE_SENML 		= 5
 )
 
 func NewRequest() *Request {
@@ -85,4 +87,29 @@ func (r *Request) GetInt64(key string) []int64 {
 
 func (r *Request) SetAuthorized(auth bool) {
 	r.IsAuthorized = auth
+}
+
+func (r *Request) SetUserid(uid string) {
+	r.Userid = uid
+}
+
+func (r *Request) GetUserid() string {
+	return r.Userid
+}
+
+func (r *Request) GetContentType() string {
+	var ct string
+	switch r.ContentType {
+	case CONTENT_TYPE_FORM:
+		ct = "application/x-www-form-urlencoded"
+	case CONTENT_TYPE_XML:
+		ct = "application/xml"
+	case CONTENT_TYPE_JSON:
+		ct = "application/json"
+	case CONTENT_TYPE_SENML:
+		ct = "application/senml+json"
+	case CONTENT_TYPE_MULTIFORM:
+		ct = "multipart/form-data"
+	}
+	return ct
 }

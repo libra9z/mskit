@@ -10,6 +10,7 @@ import (
 	"github.com/go-kit/kit/tracing/opentracing"
 	"github.com/go-kit/kit/tracing/zipkin"
 	mshttp "github.com/go-kit/kit/transport/http"
+	"github.com/go-kit/kit/transport"
 	"github.com/libra9z/httprouter"
 	"github.com/libra9z/mskit/log"
 	"github.com/libra9z/mskit/rest"
@@ -464,6 +465,20 @@ func (srv *MicroService) NewRestEndpoint(svc rest.RestService) endpoint.Endpoint
 	}
 }
 
+func (srv *MicroService) NewEndpoint() endpoint.Endpoint {
+	return func(ctx context.Context, request interface{}) (interface{}, error) {
+
+		if request == nil {
+			return nil, errors.New("no request avaliable.")
+		}
+
+		req := request.(rest.Request)
+		req.Tracer = srv.tracer
+
+		return req, nil
+	}
+}
+
 func (srv *MicroService) SetLogger(logger log.Logger) {
 	srv.logger = logger
 }
@@ -511,19 +526,19 @@ func (srv *MicroService) NewHttpHandler(withTracer bool, path string, r rest.Res
 		if withTracer {
 			options = []mshttp.ServerOption{
 				mshttp.ServerErrorEncoder(rest.ErrorEncoder),
-				mshttp.ServerErrorLogger(srv.logger),
+				mshttp.ServerErrorHandler(transport.NewLogErrorHandler(srv.logger)),
 				zipkinServer,
 			}
 		} else {
 			options = []mshttp.ServerOption{
 				mshttp.ServerErrorEncoder(rest.ErrorEncoder),
-				mshttp.ServerErrorLogger(srv.logger),
+				mshttp.ServerErrorHandler(transport.NewLogErrorHandler(srv.logger)),
 			}
 		}
 	} else {
 		options = []mshttp.ServerOption{
 			mshttp.ServerErrorEncoder(rest.ErrorEncoder),
-			mshttp.ServerErrorLogger(srv.logger),
+			mshttp.ServerErrorHandler(transport.NewLogErrorHandler(srv.logger)),
 		}
 	}
 
@@ -552,11 +567,69 @@ func (srv *MicroService) RegisterRestService(path string, rest rest.RestService,
 	regRoute(srv.Router, path, handler)
 }
 
-func (srv *MicroService) Handler(method, path string, handler http.Handler) {
+func (srv *MicroService) Handler(method, path string, ohandler http.Handler,middlewares ...rest.RestMiddleware) {
+
+	//handler := srv.NewHttpHandler(false, path, rest, middlewares...)
+	handler := ohandler
 	srv.Router.Handler(method, path, handler)
 }
-func (srv *MicroService) HandlerFunc(method, path string, handlerFunc http.HandlerFunc) {
-	srv.Router.HandlerFunc(method, path, handlerFunc)
+func (srv *MicroService) HandlerFunc(method, path string, handlerFunc http.HandlerFunc, tracer trace.Tracer, logger log.Logger,middlewares ...rest.RestMiddleware) {
+
+	srv.SetTracer(tracer)
+	srv.SetLogger(logger)
+
+	//handler := srv.NewHandlerFunc(false, path, rest, middlewares...)
+	handler := srv.NewHandlerFunc(false, path, handlerFunc, middlewares...)
+
+	srv.Router.HandlerFunc(method, path, handler)
+}
+
+func (srv *MicroService) NewHandlerFunc(withTracer bool, path string,handlerFunc http.HandlerFunc, middlewares ...rest.RestMiddleware) http.HandlerFunc {
+
+	return func(w http.ResponseWriter, req *http.Request) {
+
+		svc := srv.NewEndpoint()
+
+		for i := 0; i < len(middlewares); i++ {
+			svc = middlewares[i].GetMiddleware()(middlewares[i].Object)(svc)
+		}
+
+
+		var zipkinTracer *zipk.Tracer
+
+		var options []mshttp.ServerOption
+
+		if srv.tracer != nil {
+			zipkinTracer = srv.tracer.GetZipkinTracer()
+			if srv.tracer.GetOpenTracer() != nil && withTracer {
+				svc = opentracing.TraceServer(srv.tracer.GetOpenTracer(), path)(svc)
+				options = append(options, mshttp.ServerBefore(opentracing.HTTPToContext(srv.tracer.GetOpenTracer(), path, srv.logger)))
+			}
+		}
+
+		if zipkinTracer != nil {
+			zipkinServer := zipkin.HTTPServerTrace(zipkinTracer)
+			if withTracer {
+				options = []mshttp.ServerOption{
+					mshttp.ServerErrorEncoder(rest.ErrorEncoder),
+					mshttp.ServerErrorHandler(transport.NewLogErrorHandler(srv.logger)),
+					zipkinServer,
+				}
+			} else {
+				options = []mshttp.ServerOption{
+					mshttp.ServerErrorEncoder(rest.ErrorEncoder),
+					mshttp.ServerErrorHandler(transport.NewLogErrorHandler(srv.logger)),
+				}
+			}
+		} else {
+			options = []mshttp.ServerOption{
+				mshttp.ServerErrorEncoder(rest.ErrorEncoder),
+				mshttp.ServerErrorHandler(transport.NewLogErrorHandler(srv.logger)),
+			}
+		}
+
+		handlerFunc(w,req)
+	}
 }
 
 func regRoute(r *httprouter.Router, path string, handler http.Handler) {
