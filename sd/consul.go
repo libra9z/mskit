@@ -2,6 +2,7 @@ package sd
 
 import (
 	"encoding/json"
+	"fmt"
 	consulsd "github.com/go-kit/kit/sd/consul"
 	"github.com/hashicorp/consul/api"
 	"github.com/libra9z/mskit/grace"
@@ -257,8 +258,10 @@ func RegisterWithConf(app *grace.MicroService, schema string, fname string, cons
 		cps["trustfile"] = vs["trustfile"]
 	}
 
+	var de bool =false
 	if data["docker_enable"] != nil {
 		cps["docker_enable"] = data["docker_enable"]
+		de = data["docker_enable"].(bool)
 	}
 	if schema == "http" || schema == "https" {
 		t := reflect.ValueOf(p)
@@ -308,7 +311,9 @@ func RegisterWithConf(app *grace.MicroService, schema string, fname string, cons
 						m["sd_type"] = v["sd_type"]
 					}
 				}
-
+				if de {
+					m["host"] = ""
+				}
 				go callbacks[i](app, m)
 			}
 		} else {
@@ -324,8 +329,8 @@ func registerService(app *grace.MicroService, schema, consul, token string, para
 	var tags []string
 
 	var de bool = false
-	if params["docker_enable"] != nil {
-		de = params["docker_enable"].(bool)
+	if datas["docker_enable"] != nil {
+		de = datas["docker_enable"].(bool)
 	}
 
 	//log.Print(params)
@@ -359,13 +364,13 @@ func registerService(app *grace.MicroService, schema, consul, token string, para
 	prefix = strings.Join(tags, ",")
 
 	go func(po int) {
-		log.Printf("Listening on %s:%d serving %s", host, po, prefix)
 		if de {
-			datas["host"] = "0.0.0.0"
+			datas["host"] = ""
 
 		}else{
 			datas["host"] = host
 		}
+		fmt.Printf("Listening on %v:%d serving %s\n", datas["host"], po, prefix)
 		if err := callback(app, datas); err != nil {
 			log.Fatal(err)
 		}
