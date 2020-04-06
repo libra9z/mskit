@@ -257,6 +257,9 @@ func RegisterWithConf(app *grace.MicroService, schema string, fname string, cons
 		cps["trustfile"] = vs["trustfile"]
 	}
 
+	if data["docker_enable"] != nil {
+		cps["docker_enable"] = data["docker_enable"]
+	}
 	if schema == "http" || schema == "https" {
 		t := reflect.ValueOf(p)
 		switch t.Kind() {
@@ -320,6 +323,11 @@ func registerService(app *grace.MicroService, schema, consul, token string, para
 	var name, prefix, host, addr string
 	var tags []string
 
+	var de bool = false
+	if params["docker_enable"] != nil {
+		de = params["docker_enable"].(bool)
+	}
+
 	//log.Print(params)
 
 	if params["name"] != nil {
@@ -352,6 +360,12 @@ func registerService(app *grace.MicroService, schema, consul, token string, para
 
 	go func(po int) {
 		log.Printf("Listening on %s:%d serving %s", host, po, prefix)
+		if de {
+			datas["host"] = ""
+
+		}else{
+			datas["host"] = host
+		}
 		if err := callback(app, datas); err != nil {
 			log.Fatal(err)
 		}
