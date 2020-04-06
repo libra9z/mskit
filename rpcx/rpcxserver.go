@@ -31,6 +31,7 @@ type RpcServer struct {
 	SdType		string
 	SdAddress	string
 	BasePath	string
+	DockerEnable	bool
 
 	Methods map[string]Method
 
@@ -166,8 +167,15 @@ func (s *RpcServer) RegisterDefaultService(servName RpcServiceName, service RpcS
 
 func (s *RpcServer) Serve() error {
 
-	s.logger.Log("rpcx server running on : ", s.ServiceAddr)
-	err := s.Server.Serve(s.Network, s.ServiceAddr)
+	addr := ""
+	ss := strings.Split(s.ServiceAddr,":")
+	if s.DockerEnable {
+		addr = ":"+ss[1]
+	}else{
+		addr = s.ServiceAddr
+	}
+	s.logger.Log("rpcx server running on : ", addr)
+	err := s.Server.Serve(s.Network, addr)
 
 	if err != nil {
 		s.logger.Log("cannot run rpcx server: ", err)
@@ -381,4 +389,8 @@ func RpcxNetworkOption( network string) RpcxServerOptions {
 }
 func RpcxTracerOption( tracer trace.Tracer) RpcxServerOptions {
 	return func(c *RpcServer){ c.tracer = tracer}
+}
+
+func RpcxDockerOption( de bool) RpcxServerOptions {
+	return func(c *RpcServer){ c.DockerEnable = de}
 }

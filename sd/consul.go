@@ -312,7 +312,7 @@ func RegisterWithConf(app *grace.MicroService, schema string, fname string, cons
 					}
 				}
 				if de {
-					m["host"] = ""
+					m["docker_enable"] = de
 				}
 				go callbacks[i](app, m)
 			}
