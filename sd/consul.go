@@ -361,7 +361,7 @@ func registerService(app *grace.MicroService, schema, consul, token string, para
 	go func(po int) {
 		log.Printf("Listening on %s:%d serving %s", host, po, prefix)
 		if de {
-			datas["host"] = ""
+			datas["host"] = "0.0.0.0"
 
 		}else{
 			datas["host"] = host
