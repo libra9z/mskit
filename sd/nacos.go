@@ -129,7 +129,7 @@ func NacosRegister(app *grace.MicroService, schema, name string, prefix string, 
 
 	log.Printf("Deregistered service %q in consul", name)
 }
-func NacosRegisterFromMemory(app *grace.MicroService, schema string, buf *bytes.Buffer, nacos, token string, callbacks ...ServiceCallback) {
+func NacosRegisterFromMemory(app *grace.MicroService, schema string, buf *bytes.Buffer, nacos, token string,exparams map[string]interface{}, callbacks ...ServiceCallback) {
 
 	if buf == nil {
 		log.Fatal("内存中没有默认配置。" )
@@ -276,7 +276,21 @@ func NacosRegisterWithConf(app *grace.MicroService, schema string, fname string,
 
 	buf := bytes.NewBuffer(body)
 
-	NacosRegisterFromMemory(app,schema,buf,nacos,token,callbacks...)
+	NacosRegisterFromMemory(app,schema,buf,nacos,token,nil,callbacks...)
+
+}
+
+func NacosRegisterFile(app *grace.MicroService, schema string, fname string, nacos, token string,params map[string]interface{}, callbacks ...ServiceCallback) {
+	if fname == "" {
+		log.Fatal("没有指定配置文件。\n")
+		return
+	}
+
+	body := readFile(fname)
+
+	buf := bytes.NewBuffer(body)
+
+	NacosRegisterFromMemory(app,schema,buf,nacos,token,params,callbacks...)
 
 }
 

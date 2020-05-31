@@ -8,8 +8,9 @@ import (
 
 type Registar interface {
 	Register(app *grace.MicroService, schema, name string, prefix string, callback ServiceCallback, params map[string]interface{})
+	RegisterFile(app *grace.MicroService, schema string, fname string,params map[string]interface{}, callbacks ...ServiceCallback)
 	RegisterWithConf(app *grace.MicroService, schema string, fname string, callbacks ...ServiceCallback)
-	RegisterFromMemory(app *grace.MicroService, schema string, buf *bytes.Buffer, callbacks ...ServiceCallback)
+	RegisterFromMemory(app *grace.MicroService, schema string, buf *bytes.Buffer, exparams map[string]interface{},callbacks ...ServiceCallback)
 }
 
 type serviceDiscovery struct {
@@ -67,12 +68,20 @@ func (s *serviceDiscovery) RegisterWithConf(app *grace.MicroService, schema stri
 		NacosRegisterWithConf(app, schema, fname, s.SdAddress, s.SdToken, callbacks...)
 	}
 }
-
-func (s *serviceDiscovery) RegisterFromMemory(app *grace.MicroService, schema string, reader *bytes.Buffer, callbacks ...ServiceCallback) {
+func (s *serviceDiscovery) RegisterFile(app *grace.MicroService, schema string, fname string,params map[string]interface{}, callbacks ...ServiceCallback) {
 	switch s.SdType {
 	case "consul":
-		RegisterFromMemory(app, schema, reader, s.SdAddress, s.SdToken, callbacks...)
+		ConsulRegisterFile(app, schema, fname, s.SdAddress, s.SdToken,params, callbacks...)
 	case "nacos":
-		NacosRegisterFromMemory(app, schema, reader, s.SdAddress, s.SdToken, callbacks...)
+		NacosRegisterFile(app, schema, fname, s.SdAddress, s.SdToken, params, callbacks...)
+	}
+}
+
+func (s *serviceDiscovery) RegisterFromMemory(app *grace.MicroService, schema string, reader *bytes.Buffer, exparams map[string]interface{},callbacks ...ServiceCallback) {
+	switch s.SdType {
+	case "consul":
+		RegisterFromMemory(app, schema, reader, s.SdAddress, s.SdToken, exparams,callbacks...)
+	case "nacos":
+		NacosRegisterFromMemory(app, schema, reader, s.SdAddress, s.SdToken, exparams,callbacks...)
 	}
 }

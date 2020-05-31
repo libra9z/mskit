@@ -214,7 +214,7 @@ func readFile(path string) []byte {
 	return f
 }
 
-func RegisterFromMemory(app *grace.MicroService, schema string, reader *bytes.Buffer, consul, token string, callbacks ...ServiceCallback) {
+func RegisterFromMemory(app *grace.MicroService, schema string, reader *bytes.Buffer, consul, token string, exparams map[string]interface{}, callbacks ...ServiceCallback) {
 
 	if reader == nil {
 		log.Fatal("内存中没有默认配置。" )
@@ -363,7 +363,22 @@ func RegisterWithConf(app *grace.MicroService, schema string, fname string, cons
 
 	buf := bytes.NewBuffer(body)
 
-	RegisterFromMemory(app,schema,buf,consul,token,callbacks...)
+	RegisterFromMemory(app,schema,buf,consul,token,nil,callbacks...)
+
+}
+
+func ConsulRegisterFile(app *grace.MicroService, schema string, fname string, consul, token string,params map[string]interface{}, callbacks ...ServiceCallback) {
+
+	if fname == "" {
+		log.Fatal("没有指定配置文件。\n")
+		return
+	}
+
+	body := readFile(fname)
+
+	buf := bytes.NewBuffer(body)
+
+	RegisterFromMemory(app,schema,buf,consul,token,params,callbacks...)
 
 }
 

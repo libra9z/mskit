@@ -44,6 +44,7 @@ type MicroService struct {
 	isChild          bool
 	state            uint8
 	Network          string
+	Meta 			 map[string]interface{}
 }
 
 /**
