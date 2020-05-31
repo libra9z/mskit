@@ -10,6 +10,7 @@ const (
 	SERVICE_SCHEME_HTTP  = "http"
 	SERVICE_SCHEME_HTTPS = "https"
 	SERVICE_SCHEME_RPCX  = "rpcx"
+	SERVICE_SCHEME_TCP  = "tcp"
 )
 
 type ServiceCallback func(app *grace.MicroService, params map[string]interface{}) error

@@ -1,10 +1,12 @@
 package sd
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	consulsd "github.com/go-kit/kit/sd/consul"
 	"github.com/hashicorp/consul/api"
+	_const "github.com/libra9z/mskit/const"
 	"github.com/libra9z/mskit/grace"
 	mslog "github.com/libra9z/mskit/log"
 	"github.com/libra9z/utils"
@@ -126,7 +128,7 @@ func Register(app *grace.MicroService, schema, name string, prefix string, addr,
 	}
 
 	//consul address split
-	cs := strings.Split(consul, ",")
+	cs := strings.Split(consul, _const.ADDR_SPLIT_STRING)
 
 	if len(cs) <= 0 {
 		log.Fatal("no consul address config")
@@ -212,14 +214,13 @@ func readFile(path string) []byte {
 	return f
 }
 
-func RegisterWithConf(app *grace.MicroService, schema string, fname string, consul, token string, callbacks ...ServiceCallback) {
+func RegisterFromMemory(app *grace.MicroService, schema string, reader *bytes.Buffer, consul, token string, callbacks ...ServiceCallback) {
 
-	if fname == "" {
-		log.Fatal("没有指定配置文件。\n")
+	if reader == nil {
+		log.Fatal("内存中没有默认配置。" )
 		return
 	}
-
-	body := readFile(fname)
+	body := reader.Bytes()
 
 	var data map[string]interface{}
 	var params map[string]interface{}
@@ -232,7 +233,7 @@ func RegisterWithConf(app *grace.MicroService, schema string, fname string, cons
 	}
 
 	//consul address split
-	cs := strings.Split(consul, ",")
+	cs := strings.Split(consul, _const.ADDR_SPLIT_STRING)
 
 	if len(cs) <= 0 {
 		log.Fatal("no consul address config")
@@ -263,7 +264,8 @@ func RegisterWithConf(app *grace.MicroService, schema string, fname string, cons
 		cps["docker_enable"] = data["docker_enable"]
 		de = data["docker_enable"].(bool)
 	}
-	if schema == "http" || schema == "https" {
+	switch schema {
+	case "http","https":
 		t := reflect.ValueOf(p)
 		switch t.Kind() {
 		case reflect.Slice:
@@ -290,7 +292,7 @@ func RegisterWithConf(app *grace.MicroService, schema string, fname string, cons
 			params = p.(map[string]interface{})
 			registerService(app, schema, consul, token, params, callbacks[0], cps)
 		}
-	} else if schema == "rpcx" {
+	case "rpcx":
 		if data["rpcx"] != nil {
 			vs := data["rpcx"].([]interface{})
 			for i, vv := range vs {
@@ -316,11 +318,52 @@ func RegisterWithConf(app *grace.MicroService, schema string, fname string, cons
 				}
 				go callbacks[i](app, m)
 			}
-		} else {
-			log.Fatal("没有配置参数。")
-			panic("没有配置参数")
 		}
+	case "tcp":
+		t := reflect.ValueOf(p)
+		switch t.Kind() {
+		case reflect.Slice:
+			ps := p.([]interface{})
+			if len(ps) != len(callbacks) {
+				log.Fatal("服务数量与回调函数数量不匹配。")
+				return
+			}
+			for i, vs := range ps {
+				v := vs.(map[string]interface{})
+				go registerService(app, schema, consul, token, v, callbacks[i], cps)
+			}
+
+			quit := make(chan os.Signal, 1)
+			signal.Notify(quit, os.Interrupt, os.Kill)
+			<-quit
+
+			//select {}
+		case reflect.Map:
+			if len(callbacks) < 1 {
+				log.Fatal("没有指定回调函数。")
+				return
+			}
+			params = p.(map[string]interface{})
+			registerService(app, schema, consul, token, params, callbacks[0], cps)
+		}
+	default:
+		log.Fatal("没有配置参数。")
+		panic("没有配置参数")
 	}
+}
+
+func RegisterWithConf(app *grace.MicroService, schema string, fname string, consul, token string, callbacks ...ServiceCallback) {
+
+	if fname == "" {
+		log.Fatal("没有指定配置文件。\n")
+		return
+	}
+
+	body := readFile(fname)
+
+	buf := bytes.NewBuffer(body)
+
+	RegisterFromMemory(app,schema,buf,consul,token,callbacks...)
 
 }
 

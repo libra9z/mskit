@@ -5,14 +5,17 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
+	"github.com/libra9z/mskit/log"
+	"github.com/libra9z/mskit/sd"
+	"github.com/libra9z/mskit/trace"
+	"github.com/libra9z/utils"
+	"github.com/opentracing/opentracing-go"
 	zipkin "github.com/openzipkin/zipkin-go"
 	metrics "github.com/rcrowley/go-metrics"
 	"github.com/smallnest/rpcx/server"
 	"github.com/smallnest/rpcx/serverplugin"
-	"github.com/libra9z/mskit/trace"
-	"github.com/opentracing/opentracing-go"
 	"strings"
-	"github.com/libra9z/mskit/log"
 	"time"
 )
 
@@ -30,11 +33,14 @@ type RpcServer struct {
 	ServiceAddr string
 	SdType		string
 	SdAddress	string
+	ClusterName	string
+	GroupName	string
 	BasePath	string
 	DockerEnable	bool
 
 	Methods map[string]Method
 
+	Params		map[string]interface{}
 	//zipkinTracer 		*zipkin.Tracer
 	//tracer 		opentracing.Tracer
 	tracer 			trace.Tracer
@@ -174,11 +180,11 @@ func (s *RpcServer) Serve() error {
 	}else{
 		addr = s.ServiceAddr
 	}
-	s.logger.Log("rpcx server running on : ", addr)
+	s.logger.Log("rpcx_server_running_on: ", addr)
 	err := s.Server.Serve(s.Network, addr)
 
 	if err != nil {
-		s.logger.Log("cannot run rpcx server: ", err)
+		s.logger.Log("cannot_run_rpcx_server: ", err)
 		return err
 	}
 	return nil
@@ -308,13 +314,14 @@ func NewRpcxServer(options ...RpcxServerOptions) *RpcServer {
 		option(s)
 	}
 
+	if s.GroupName == "" {
+		s.GroupName = "rpcx"
+	}
 	if s.tracer != nil {
 		opentracing.SetGlobalTracer(s.tracer.GetOpenTracer())
 	}
-
-	s.logger.Log("info","consul registering... ")
-
-	//fmt.Printf("(options=%d)rpcserver=%+v\n",len(options),s)
+	msg := fmt.Sprintf("%s registering... ",s.SdType)
+	s.logger.Log("info", msg)
 
 	cs := strings.Split(s.SdAddress, ",")
 	switch s.SdType {
@@ -358,6 +365,24 @@ func NewRpcxServer(options ...RpcxServerOptions) *RpcServer {
 			s.logger.Log("error", err)
 		}
 		s.Server.Plugins.Add(p)
+
+	case "nacos":
+		clientConfig := sd.GetClientConfig(s.Params)
+		sc := sd.GetServerConfig(s.SdAddress,s.Params)
+		p := &serverplugin.NacosRegisterPlugin{
+			ServiceAddress: s.Network + "@" + s.ServiceAddr,
+			Cluster: s.ClusterName,
+			ClientConfig: clientConfig,
+			ServerConfig: sc,
+		}
+		if s.Params != nil && s.Params["tenant"] != nil {
+			p.Tenant = utils.ConvertToString(s.Params["tenant"])
+		}
+		err := p.Start()
+		if err != nil {
+			s.logger.Log("error", err)
+		}
+		s.Server.Plugins.Add(p)
 	}
 
 
@@ -393,4 +418,8 @@ func RpcxTracerOption( tracer trace.Tracer) RpcxServerOptions {
 
 func RpcxDockerOption( de bool) RpcxServerOptions {
 	return func(c *RpcServer){ c.DockerEnable = de}
+}
+
+func RpcxParamsOption( param map[string]interface{}) RpcxServerOptions {
+	return func(c *RpcServer){ c.Params = param}
 }

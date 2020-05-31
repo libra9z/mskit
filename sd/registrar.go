@@ -1,6 +1,7 @@
 package sd
 
 import (
+	"bytes"
 	"github.com/libra9z/mskit/grace"
 	"github.com/libra9z/utils"
 )
@@ -8,6 +9,7 @@ import (
 type Registar interface {
 	Register(app *grace.MicroService, schema, name string, prefix string, callback ServiceCallback, params map[string]interface{})
 	RegisterWithConf(app *grace.MicroService, schema string, fname string, callbacks ...ServiceCallback)
+	RegisterFromMemory(app *grace.MicroService, schema string, buf *bytes.Buffer, callbacks ...ServiceCallback)
 }
 
 type serviceDiscovery struct {
@@ -52,6 +54,8 @@ func (s *serviceDiscovery) Register(app *grace.MicroService, schema, name string
 	switch s.SdType {
 	case "consul":
 		Register(app, schema, name, prefix, addr, s.SdAddress, s.SdToken, callback, params)
+	case "nacos":
+		NacosRegister(app, schema, name, prefix, addr, s.SdAddress, s.SdToken, callback, params)
 	}
 }
 
@@ -59,5 +63,16 @@ func (s *serviceDiscovery) RegisterWithConf(app *grace.MicroService, schema stri
 	switch s.SdType {
 	case "consul":
 		RegisterWithConf(app, schema, fname, s.SdAddress, s.SdToken, callbacks...)
+	case "nacos":
+		NacosRegisterWithConf(app, schema, fname, s.SdAddress, s.SdToken, callbacks...)
+	}
+}
+
+func (s *serviceDiscovery) RegisterFromMemory(app *grace.MicroService, schema string, reader *bytes.Buffer, callbacks ...ServiceCallback) {
+	switch s.SdType {
+	case "consul":
+		RegisterFromMemory(app, schema, reader, s.SdAddress, s.SdToken, callbacks...)
+	case "nacos":
+		NacosRegisterFromMemory(app, schema, reader, s.SdAddress, s.SdToken, callbacks...)
 	}
 }
