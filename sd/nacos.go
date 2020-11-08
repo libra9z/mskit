@@ -82,13 +82,9 @@ func NacosRegister(app *grace.MicroService, schema, name string, prefix string, 
 	serverConfigs := GetServerConfig(nacos,params)
 
 	clusterName := ""
-	tenant := ""
 	weight := 0.0
 	if params != nil && params["clustername"] != nil {
 		clusterName = utils.ConvertToString(params["clustername"])
-	}
-	if params != nil && params["tenant"] != nil {
-		tenant = utils.ConvertToString(params["tenant"])
 	}
 	if params != nil && params["weight"] != nil {
 		weight = utils.Convert2Float64(params["weight"])
@@ -106,7 +102,6 @@ func NacosRegister(app *grace.MicroService, schema, name string, prefix string, 
 		ServiceName: serviceID,
 		Weight:      weight,
 		ClusterName: clusterName,
-		Tenant: tenant,
 		Enable:      true,
 		Healthy:     true,
 		Ephemeral:   true,
@@ -432,13 +427,9 @@ func nacosRegisterService(app *grace.MicroService, schema, nacos, token string, 
 	serverConfigs := GetServerConfig(nacos,params)
 
 	clusterName := ""
-	tenant := ""
 	weight := 0.0
 	if params != nil && params["clustername"] != nil {
 		clusterName = utils.ConvertToString(params["clustername"])
-	}
-	if params != nil && params["tenant"] != nil {
-		tenant = utils.ConvertToString(params["tenant"])
 	}
 	if params != nil && params["weight"] != nil {
 		weight = utils.Convert2Float64(params["weight"])
@@ -463,7 +454,6 @@ func nacosRegisterService(app *grace.MicroService, schema, nacos, token string, 
 		ServiceName: serviceID,
 		Weight:      weight,
 		ClusterName: clusterName,
-		Tenant: tenant,
 		GroupName: grpname,
 		Enable:      true,
 		Healthy:     true,

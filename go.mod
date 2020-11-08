@@ -10,7 +10,7 @@ require (
 	github.com/libra9z/httprouter v1.2.0
 	github.com/libra9z/mahonia v0.0.0-20150731031913-6d9f3cf9f957 // indirect
 	github.com/libra9z/utils v0.0.0-20200531104440-670e4d45d67d
-	github.com/nacos-group/nacos-sdk-go v1.0.0
+	github.com/nacos-group/nacos-sdk-go v1.0.1
 	github.com/opentracing/opentracing-go v1.2.0
 	github.com/openzipkin/zipkin-go v0.2.3
 	github.com/rcrowley/go-metrics v0.0.0-20200313005456-10cdbea86bc0
