@@ -375,9 +375,6 @@ func NewRpcxServer(options ...RpcxServerOptions) *RpcServer {
 			ClientConfig: clientConfig,
 			ServerConfig: sc,
 		}
-		if s.Params != nil && s.Params["tenant"] != nil {
-			p.Tenant = utils.ConvertToString(s.Params["tenant"])
-		}
 		err := p.Start()
 		if err != nil {
 			s.logger.Log("error", err)
