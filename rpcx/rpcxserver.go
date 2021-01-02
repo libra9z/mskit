@@ -338,11 +338,9 @@ func NewRpcxServer(options ...RpcxServerOptions) *RpcServer {
 		}
 		s.Server.Plugins.Add(p)
 
-	case "etcd":
-		p := &serverplugin.EtcdRegisterPlugin{
+	case "mdns":
+		p := &serverplugin.MDNSRegisterPlugin{
 			ServiceAddress: s.Network + "@" + s.ServiceAddr,
-			EtcdServers : cs,
-			BasePath:       s.BasePath,
 			Metrics:        metrics.NewRegistry(),
 			UpdateInterval: time.Minute,
 		}
