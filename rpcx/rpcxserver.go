@@ -9,7 +9,6 @@ import (
 	"github.com/libra9z/mskit/log"
 	"github.com/libra9z/mskit/sd"
 	"github.com/libra9z/mskit/trace"
-	"github.com/libra9z/utils"
 	"github.com/opentracing/opentracing-go"
 	zipkin "github.com/openzipkin/zipkin-go"
 	metrics "github.com/rcrowley/go-metrics"

@@ -10,6 +10,7 @@ import (
 	"reflect"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/smallnest/rpcx/client"
 
@@ -83,21 +84,34 @@ func NewClientPool(size int,sdtype,sdaddr,basepath, serviceName string,failMode 
 	}()
 	
 	var cs client.ServiceDiscovery
+	var err error
 	switch sdtype {
 	case "consul":
 		ss := strings.Split(sdaddr, _const.ADDR_SPLIT_STRING)
-		cs = client.NewConsulDiscovery(basepath, serviceName, ss, nil)
-	case "etcd":
-		ss := strings.Split(sdaddr, _const.ADDR_SPLIT_STRING)
-		cs = client.NewEtcdDiscovery(basepath, serviceName, ss, nil)
+		cs,_ = client.NewConsulDiscovery(basepath, serviceName, ss, nil)
+	case "mdns":
+		var t1,w1 time.Duration
+		var domain string
+		if params != nil {
+			if params["timeout"] != nil {
+				t1 = time.Duration(utils.Convert2Int(params["timeout"]))
+			}
+			if params["watchinterval"] != nil {
+				w1 = time.Duration(utils.Convert2Int(params["watchinterval"]))
+			}
+		}
+		cs,err = client.NewMDNSDiscovery(serviceName, t1,w1, domain)
+		if err  != nil {
+			fmt.Printf("error=%v\n",err.Error())
+		}
 	case "zookeeper":
 		ss := strings.Split(sdaddr, _const.ADDR_SPLIT_STRING)
-		cs = client.NewZookeeperDiscovery(basepath, serviceName, ss, nil)
+		cs,_ = client.NewZookeeperDiscovery(basepath, serviceName, ss, nil)
 	case "nacos":
 		clientConfig := sd.GetClientConfig(params)
 		sc := sd.GetServerConfig(sdaddr,params)
 		clustername := utils.ConvertToString(params["cluster_name"])
-		cs = client.NewNacosDiscovery(serviceName, clustername, clientConfig, sc)
+		cs,_ = client.NewNacosDiscovery(serviceName, clustername, clientConfig, sc)
 	}
 	xclient := client.NewXClientPool(size, serviceName, failMode, selectMode, cs, client.DefaultOption)
 
