@@ -13,7 +13,7 @@ func RpcCallWithConsul(basepath, consuladdr, serviceName, methodName string, sel
 
 	ss := strings.Split(consuladdr, ";")
 
-	d := client.NewConsulDiscovery(basepath, serviceName, ss, nil)
+	d ,_:= client.NewConsulDiscovery(basepath, serviceName, ss, nil)
 
 	if selectMode < 0 {
 		selectMode = int(client.RandomSelect)
