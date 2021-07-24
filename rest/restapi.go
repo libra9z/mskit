@@ -12,6 +12,8 @@ import (
 	"strings"
 )
 
+var _ RestService = (*RestApi)(nil)
+
 type RestApi struct {
 	Request *http.Request
 	Router  *httprouter.Router
@@ -135,17 +137,17 @@ func (c *RestApi) DecodeRequest(_ context.Context, r *http.Request) (request int
 		req.ContentType = CONTENT_TYPE_MULTIFORM
 	}
 
-	return req, nil
+	return  c.Prepare(&req)
 }
 
 func (c *RestApi) Prepare(r *Request) (interface{}, error) {
-	return nil, nil
+	return r, nil
 }
 
 /*
 *该方法是在response返回之前调用，用于增加一下个性化的头信息
  */
-func (c *RestApi) Finish(w http.ResponseWriter) error {
+func (c *RestApi) Finish(w http.ResponseWriter,response interface{}) error {
 
 	if w == nil {
 		return errors.New("writer is nil ")
@@ -155,7 +157,8 @@ func (c *RestApi) Finish(w http.ResponseWriter) error {
 	w.Header().Add("Access-Control-Allow-Headers", "Content-Type,Origin,Accept,Content-Range,Content-Description,Content-Disposition")
 	w.Header().Add("Access-Control-Allow-Methods", "PUT,GET,POST,DELETE,OPTIONS")
 
-	return nil
+	err := json.NewEncoder(w).Encode(response)
+	return err
 }
 
 // EncodeResponse adds a restservice used for endpoint.
@@ -167,9 +170,7 @@ func (c *RestApi) EncodeResponse(_ context.Context, w http.ResponseWriter, respo
 
 	w.Header().Set("Allow", "HEAD,GET,PUT,DELETE,OPTIONS,POST")
 
-	c.Finish(w)
-
-	err := json.NewEncoder(w).Encode(response)
+	err := c.Finish(w,response)
 
 	return err
 }

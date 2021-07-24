@@ -49,6 +49,9 @@ type RestService interface {
 	Options(context.Context, *Request) (interface{}, error)
 	Trace(context.Context, *Request) (interface{}, error)
 
+	Prepare(r *Request) (interface{}, error)
+	Finish(w http.ResponseWriter,response interface{}) error
+
 	//response relate interface
 	SetRouter(router *httprouter.Router)
 	GetErrorResponse() interface{}
