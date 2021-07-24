@@ -3,13 +3,12 @@ package rpcx
 import (
 	"context"
 	"fmt"
-	_const "github.com/libra9z/mskit/const"
-	"github.com/libra9z/mskit/sd"
-	"github.com/libra9z/utils"
-	"github.com/smallnest/rpcx/share"
 	"reflect"
 	"strings"
 	"sync"
+
+	_const "github.com/libra9z/mskit/const"
+	"github.com/smallnest/rpcx/share"
 
 	"github.com/smallnest/rpcx/client"
 
@@ -20,26 +19,26 @@ import (
 // endpoint.Endpoint.
 type Client struct {
 	client      client.XClient
-	failMode 	client.FailMode
-	selectMode 	client.SelectMode
+	failMode    client.FailMode
+	selectMode  client.SelectMode
 	serviceName string
-	service		string
+	service     string
 	method      string
 	sdType      string
 	sdAddress   string
 	basePath    string
-	poolsize	int
+	poolsize    int
 	rpcxReply   reflect.Type
 	before      []ClientRequestFunc
 	after       []ClientResponseFunc
 	finalizer   []ClientFinalizerFunc
-	Params 		map[string]interface{}
+	Params      map[string]interface{}
 }
 
 var ClientPool map[string]*client.XClientPool
-var lock *sync.Mutex = &sync.Mutex {}
+var lock *sync.Mutex = &sync.Mutex{}
 
-func init(){
+func init() {
 	ClientPool = make(map[string]*client.XClientPool)
 }
 
@@ -73,31 +72,36 @@ func NewClient(
 // NewClient constructs a usable Client for a single remote endpoint.
 // Pass an zero-value protobuf message of the RPC response type as
 // the rpcxReply argument.
-func NewClientPool(size int,sdtype,sdaddr,basepath, serviceName string,failMode client.FailMode,selectMode client.SelectMode,params map[string]interface{}) *client.XClientPool {
+func NewClientPool(size int, sdtype, sdaddr, basepath, serviceName string, failMode client.FailMode, selectMode client.SelectMode, params map[string]interface{}) *client.XClientPool {
 
-	defer func(){
-		if e:=recover();e!=nil {
-			fmt.Printf("error = %v\n",e)
+	defer func() {
+		if e := recover(); e != nil {
+			fmt.Printf("error = %v\n", e)
 			return
 		}
 	}()
-	
+
 	var cs client.ServiceDiscovery
+	var err error
 	switch sdtype {
 	case "consul":
 		ss := strings.Split(sdaddr, _const.ADDR_SPLIT_STRING)
-		cs = client.NewConsulDiscovery(basepath, serviceName, ss, nil)
-	case "etcd":
+		cs, err = client.NewConsulDiscovery(basepath, serviceName, ss, nil)
+	case "redis":
 		ss := strings.Split(sdaddr, _const.ADDR_SPLIT_STRING)
-		cs = client.NewEtcdDiscovery(basepath, serviceName, ss, nil)
+		cs, err = client.NewRedisDiscovery(basepath, serviceName, ss, nil)
 	case "zookeeper":
 		ss := strings.Split(sdaddr, _const.ADDR_SPLIT_STRING)
-		cs = client.NewZookeeperDiscovery(basepath, serviceName, ss, nil)
-	case "nacos":
-		clientConfig := sd.GetClientConfig(params)
-		sc := sd.GetServerConfig(sdaddr,params)
-		clustername := utils.ConvertToString(params["cluster_name"])
-		cs = client.NewNacosDiscovery(serviceName, clustername, clientConfig, sc)
+		cs, err = client.NewZookeeperDiscovery(basepath, serviceName, ss, nil)
+		// case "dns":
+		// 	clientConfig := sd.GetClientConfig(params)
+		// 	sc := sd.GetServerConfig(sdaddr, params)
+		// 	clustername := utils.ConvertToString(params["cluster_name"])
+		// 	cs, err = client.NewDNSDiscovery(serviceName, clustername, clientConfig, sc)
+	}
+	if err != nil {
+		fmt.Errorf("cannot discovery service: %v", err)
+		return nil
 	}
 	xclient := client.NewXClientPool(size, serviceName, failMode, selectMode, cs, client.DefaultOption)
 
@@ -157,7 +161,7 @@ func (c Client) Endpoint() endpoint.Endpoint {
 		ctx = context.WithValue(ctx, share.ReqMetaDataKey, map[string]string{"method": c.method})
 		ctx = context.WithValue(ctx, share.ResMetaDataKey, make(map[string]string))
 
-		if err = c.client.Call(	ctx, c.service, req, rpcxReply); err != nil {
+		if err = c.client.Call(ctx, c.service, req, rpcxReply); err != nil {
 			return nil, err
 		}
 
@@ -170,28 +174,27 @@ func (c Client) Endpoint() endpoint.Endpoint {
 	}
 }
 
-func (c *Client)Close() error {
+func (c *Client) Close() error {
 	pc := ClientPool[c.serviceName]
 	pc.Close()
 
 	return nil
 }
 
-func (c *Client)GetClientPool() *client.XClientPool {
+func (c *Client) GetClientPool() *client.XClientPool {
 
-	if pc,ok :=  ClientPool[c.serviceName];ok {
+	if pc, ok := ClientPool[c.serviceName]; ok {
 		return pc
-	}else{
+	} else {
 		lock.Lock()
 		defer lock.Unlock()
 		if ClientPool[c.serviceName] == nil {
-			ClientPool[c.serviceName] = NewClientPool(c.poolsize,c.sdType,c.sdAddress,c.basePath,c.serviceName,c.failMode,c.selectMode, c.Params)
+			ClientPool[c.serviceName] = NewClientPool(c.poolsize, c.sdType, c.sdAddress, c.basePath, c.serviceName, c.failMode, c.selectMode, c.Params)
 		}
 	}
 
 	return ClientPool[c.serviceName]
 }
-
 
 // ClientFinalizerFunc can be used to perform work at the end of a client RPCx
 // request, after the response is returned. The principal
@@ -201,36 +204,35 @@ func (c *Client)GetClientPool() *client.XClientPool {
 // when an error occurs.
 type ClientFinalizerFunc func(ctx context.Context, err error)
 
-
-func BasePathOption( basepath string) ClientOption {
-	return func(c *Client){ c.basePath = basepath}
+func BasePathOption(basepath string) ClientOption {
+	return func(c *Client) { c.basePath = basepath }
 }
-func SdTypeOption( sdtype string) ClientOption {
-	return func(c *Client){ c.sdType = sdtype}
+func SdTypeOption(sdtype string) ClientOption {
+	return func(c *Client) { c.sdType = sdtype }
 }
-func SdAddressOption( sdaddress string) ClientOption {
-	return func(c *Client){ c.sdAddress = sdaddress}
+func SdAddressOption(sdaddress string) ClientOption {
+	return func(c *Client) { c.sdAddress = sdaddress }
 }
-func FailModeOption( failmode client.FailMode) ClientOption {
-	return func(c *Client){ c.failMode = failmode}
+func FailModeOption(failmode client.FailMode) ClientOption {
+	return func(c *Client) { c.failMode = failmode }
 }
-func SelectModeOption( sel client.SelectMode) ClientOption {
-	return func(c *Client){ c.selectMode = sel}
+func SelectModeOption(sel client.SelectMode) ClientOption {
+	return func(c *Client) { c.selectMode = sel }
 }
-func MethodOption( method string) ClientOption {
-	return func(c *Client){ c.method = method}
+func MethodOption(method string) ClientOption {
+	return func(c *Client) { c.method = method }
 }
-func ServiceOption( service string) ClientOption {
-	return func(c *Client){ c.service = service}
+func ServiceOption(service string) ClientOption {
+	return func(c *Client) { c.service = service }
 }
-func ServiceNameOption( svrname string) ClientOption {
-	return func(c *Client){ c.serviceName = svrname}
-}
-
-func PoolSizeOption( poolsize int) ClientOption {
-	return func(c *Client){ c.poolsize = poolsize}
+func ServiceNameOption(svrname string) ClientOption {
+	return func(c *Client) { c.serviceName = svrname }
 }
 
-func ParamsOption( params map[string]interface{}) ClientOption {
-	return func(c *Client){ c.Params = params}
+func PoolSizeOption(poolsize int) ClientOption {
+	return func(c *Client) { c.poolsize = poolsize }
+}
+
+func ParamsOption(params map[string]interface{}) ClientOption {
+	return func(c *Client) { c.Params = params }
 }
