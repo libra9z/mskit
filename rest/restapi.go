@@ -3,6 +3,7 @@ package rest
 import (
 	"context"
 	"encoding/json"
+	"encoding/xml"
 	"errors"
 	"fmt"
 	"github.com/go-kit/kit/metrics"
@@ -168,8 +169,19 @@ func (c *RestApi) EncodeResponse(_ context.Context, w http.ResponseWriter, respo
 	w.Header().Set("Allow", "HEAD,GET,PUT,DELETE,OPTIONS,POST")
 
 	c.Finish(w)
-
-	err := json.NewEncoder(w).Encode(response)
+	var err error
+	if strings.Contains(c.Request.Header.Get("Content-Type"),"application/xml" ){
+		w.Header().Add("Content-Type","application/xml")
+		w.Write([]byte(xml.Header))
+		csxml,err := xml.Marshal(response)
+		if err != nil {
+			return err
+		}
+		w.Write(csxml)
+		//err = xml.NewEncoder(w).Encode(response)
+	}else if strings.Contains(c.Request.Header.Get("Content-Type"),"application/json" ){
+		err = json.NewEncoder(w).Encode(response)
+	}
 
 	return err
 }
