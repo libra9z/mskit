@@ -5,21 +5,22 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/go-kit/kit/metrics"
-	"github.com/libra9z/httprouter"
 	"io/ioutil"
 	"net/http"
 	"strings"
+
+	"github.com/go-kit/kit/metrics"
+	"github.com/libra9z/httprouter"
 )
 
 var _ RestService = (*RestApi)(nil)
 
 type RestApi struct {
-	Request *http.Request
-	Router  *httprouter.Router
-	Counter		metrics.Counter
-	Gauge 		metrics.Gauge
-	Histogram 	metrics.Histogram
+	Request   *http.Request
+	Router    *httprouter.Router
+	Counter   metrics.Counter
+	Gauge     metrics.Gauge
+	Histogram metrics.Histogram
 }
 
 // Get adds a request function to handle GET request.
@@ -28,51 +29,48 @@ func (c *RestApi) SetRouter(r *httprouter.Router) {
 }
 
 // Get adds a request function to handle GET request.
-func (c *RestApi) Get(ctx context.Context, r *Request) (interface{}, error) {
+func (c *RestApi) Get(ctx context.Context, r *Mcontext) (interface{}, error) {
 	return nil, nil
 }
 
 // Post adds a request function to handle POST request.
-func (c *RestApi) Post(ctx context.Context, r *Request) (interface{}, error) {
+func (c *RestApi) Post(ctx context.Context, r *Mcontext) (interface{}, error) {
 	return nil, nil
 }
 
 // Delete adds a request function to handle DELETE request.
-func (c *RestApi) Delete(ctx context.Context, r *Request) (interface{}, error) {
+func (c *RestApi) Delete(ctx context.Context, r *Mcontext) (interface{}, error) {
 	return nil, nil
 }
 
 // Put adds a request function to handle PUT request.
-func (c *RestApi) Put(ctx context.Context, r *Request) (interface{}, error) {
+func (c *RestApi) Put(ctx context.Context, r *Mcontext) (interface{}, error) {
 	return nil, nil
 }
 
 // Head adds a request function to handle HEAD request.
-func (c *RestApi) Head(ctx context.Context, r *Request) (interface{}, error) {
+func (c *RestApi) Head(ctx context.Context, r *Mcontext) (interface{}, error) {
 	return nil, nil
 }
 
 // Patch adds a request function to handle PATCH request.
-func (c *RestApi) Patch(ctx context.Context, r *Request) (interface{}, error) {
+func (c *RestApi) Patch(ctx context.Context, r *Mcontext) (interface{}, error) {
 	return nil, nil
 }
 
 // Options adds a request function to handle OPTIONS request.
-func (c *RestApi) Options(ctx context.Context, r *Request) (interface{}, error) {
+func (c *RestApi) Options(ctx context.Context, r *Mcontext) (interface{}, error) {
 	return nil, nil
 }
 
 // Options adds a request function to handle OPTIONS request.
-func (c *RestApi) Trace(ctx context.Context, r *Request) (interface{}, error) {
+func (c *RestApi) Trace(ctx context.Context, r *Mcontext) (interface{}, error) {
 	return nil, nil
 }
 
 // GetErrorResponse adds a restservice used for endpoint.
 func (c *RestApi) GetErrorResponse() interface{} {
-	resp := NewResponse()
-	resp.Data["ret"] = 1
-	resp.Data["error"] = errors.New("Not allowed.")
-	return resp
+	return nil
 }
 
 // DecodeRequest adds a restservice used for endpoint.
@@ -84,7 +82,7 @@ func (c *RestApi) DecodeRequest(_ context.Context, r *http.Request) (request int
 
 	c.Request = r
 
-	req := Request{Queries: make(map[string]interface{})}
+	req := Mcontext{Queries: make(map[string]interface{})}
 
 	req.Method = r.Method
 
@@ -137,17 +135,17 @@ func (c *RestApi) DecodeRequest(_ context.Context, r *http.Request) (request int
 		req.ContentType = CONTENT_TYPE_MULTIFORM
 	}
 
-	return  c.Prepare(&req)
+	return c.Prepare(&req)
 }
 
-func (c *RestApi) Prepare(r *Request) (interface{}, error) {
+func (c *RestApi) Prepare(r *Mcontext) (*Mcontext, error) {
 	return r, nil
 }
 
 /*
 *该方法是在response返回之前调用，用于增加一下个性化的头信息
  */
-func (c *RestApi) Finish(w http.ResponseWriter,response interface{}) error {
+func (c *RestApi) Finish(w http.ResponseWriter, response interface{}) error {
 
 	if w == nil {
 		return errors.New("writer is nil ")
@@ -170,7 +168,7 @@ func (c *RestApi) EncodeResponse(_ context.Context, w http.ResponseWriter, respo
 
 	w.Header().Set("Allow", "HEAD,GET,PUT,DELETE,OPTIONS,POST")
 
-	err := c.Finish(w,response)
+	err := c.Finish(w, response)
 
 	return err
 }

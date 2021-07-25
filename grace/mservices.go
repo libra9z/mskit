@@ -6,16 +6,6 @@ import (
 	"crypto/x509"
 	"errors"
 	"fmt"
-	"github.com/go-kit/kit/endpoint"
-	"github.com/go-kit/kit/tracing/opentracing"
-	"github.com/go-kit/kit/tracing/zipkin"
-	mshttp "github.com/go-kit/kit/transport/http"
-	"github.com/go-kit/kit/transport"
-	"github.com/libra9z/httprouter"
-	"github.com/libra9z/mskit/log"
-	"github.com/libra9z/mskit/rest"
-	"github.com/libra9z/mskit/trace"
-	zipk "github.com/openzipkin/zipkin-go"
 	"io/ioutil"
 	"net"
 	"net/http"
@@ -27,6 +17,17 @@ import (
 	"sync"
 	"syscall"
 	"time"
+
+	"github.com/go-kit/kit/endpoint"
+	"github.com/go-kit/kit/tracing/opentracing"
+	"github.com/go-kit/kit/tracing/zipkin"
+	"github.com/go-kit/kit/transport"
+	mshttp "github.com/go-kit/kit/transport/http"
+	"github.com/libra9z/httprouter"
+	"github.com/libra9z/mskit/log"
+	"github.com/libra9z/mskit/rest"
+	"github.com/libra9z/mskit/trace"
+	zipk "github.com/openzipkin/zipkin-go"
 )
 
 // App defines msrest application with a new PatternServeMux.
@@ -44,7 +45,7 @@ type MicroService struct {
 	isChild          bool
 	state            uint8
 	Network          string
-	Meta 			 map[string]interface{}
+	Meta             map[string]interface{}
 }
 
 /**
@@ -434,7 +435,7 @@ func (srv *MicroService) NewRestEndpoint(svc rest.RestService) endpoint.Endpoint
 			return nil, errors.New("no request avaliable.")
 		}
 
-		req := request.(rest.Request)
+		req := request.(rest.Mcontext)
 		req.Tracer = srv.tracer
 
 		var ret interface{}
@@ -568,13 +569,13 @@ func (srv *MicroService) RegisterRestService(path string, rest rest.RestService,
 	regRoute(srv.Router, path, handler)
 }
 
-func (srv *MicroService) Handler(method, path string, ohandler http.Handler,middlewares ...rest.RestMiddleware) {
+func (srv *MicroService) Handler(method, path string, ohandler http.Handler, middlewares ...rest.RestMiddleware) {
 
 	//handler := srv.NewHttpHandler(false, path, rest, middlewares...)
 	handler := ohandler
 	srv.Router.Handler(method, path, handler)
 }
-func (srv *MicroService) HandlerFunc(method, path string, handlerFunc http.HandlerFunc, tracer trace.Tracer, logger log.Logger,middlewares ...rest.RestMiddleware) {
+func (srv *MicroService) HandlerFunc(method, path string, handlerFunc http.HandlerFunc, tracer trace.Tracer, logger log.Logger, middlewares ...rest.RestMiddleware) {
 
 	srv.SetTracer(tracer)
 	srv.SetLogger(logger)
@@ -585,7 +586,7 @@ func (srv *MicroService) HandlerFunc(method, path string, handlerFunc http.Handl
 	srv.Router.HandlerFunc(method, path, handler)
 }
 
-func (srv *MicroService) NewHandlerFunc(withTracer bool, path string,handlerFunc http.HandlerFunc, middlewares ...rest.RestMiddleware) http.HandlerFunc {
+func (srv *MicroService) NewHandlerFunc(withTracer bool, path string, handlerFunc http.HandlerFunc, middlewares ...rest.RestMiddleware) http.HandlerFunc {
 
 	return func(w http.ResponseWriter, req *http.Request) {
 
@@ -594,7 +595,6 @@ func (srv *MicroService) NewHandlerFunc(withTracer bool, path string,handlerFunc
 		for i := 0; i < len(middlewares); i++ {
 			svc = middlewares[i].GetMiddleware()(middlewares[i].Object)(svc)
 		}
-
 
 		var zipkinTracer *zipk.Tracer
 
@@ -629,7 +629,7 @@ func (srv *MicroService) NewHandlerFunc(withTracer bool, path string,handlerFunc
 			}
 		}
 
-		handlerFunc(w,req)
+		handlerFunc(w, req)
 	}
 }
 
