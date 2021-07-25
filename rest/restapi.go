@@ -118,7 +118,7 @@ func (c *RestApi) DecodeRequest(_ context.Context, r *http.Request) (request int
 		req.RemoteAddr = ip
 	}
 
-	req.OriginRequest = r
+	req.Request = r
 
 	if !strings.Contains(r.Header.Get("Content-Type"), "multipart/form-data") {
 		req.Body, err = ioutil.ReadAll(r.Body)
@@ -171,4 +171,21 @@ func (c *RestApi) EncodeResponse(_ context.Context, w http.ResponseWriter, respo
 	err := c.Finish(w, response)
 
 	return err
+}
+
+type errorWrapper struct {
+	Error string `json:"error"`
+}
+
+func (c *RestApi)ErrorEncoder(_ context.Context, err error, w http.ResponseWriter) {
+	code := http.StatusInternalServerError
+	msg := err.Error()
+
+	switch err {
+	case ErrTwoZeroes, ErrMaxSizeExceeded, ErrIntOverflow:
+		code = http.StatusBadRequest
+	}
+
+	w.WriteHeader(code)
+	json.NewEncoder(w).Encode(errorWrapper{Error: msg})
 }

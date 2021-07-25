@@ -22,7 +22,6 @@ type ResponseWriter interface {
 	http.ResponseWriter
 	http.Hijacker
 	http.Flusher
-	http.CloseNotifier
 
 	// Returns the HTTP response status code of the current request.
 	Status() int

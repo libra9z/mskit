@@ -2,6 +2,7 @@ package rest
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"net/http"
 
@@ -21,6 +22,19 @@ var (
 	// ErrMaxSizeExceeded protects the Concat method.
 	ErrMaxSizeExceeded = errors.New("result exceeds maximum size")
 )
+func ErrorEncoder(_ context.Context, err error, w http.ResponseWriter) {
+	code := http.StatusInternalServerError
+	msg := err.Error()
+
+	switch err {
+	case ErrTwoZeroes, ErrMaxSizeExceeded, ErrIntOverflow:
+		code = http.StatusBadRequest
+	}
+
+	w.WriteHeader(code)
+	json.NewEncoder(w).Encode(errorWrapper{Error: msg})
+}
+
 
 type RestService interface {
 	Get(context.Context, *Mcontext) (interface{}, error)
@@ -40,4 +54,5 @@ type RestService interface {
 	GetErrorResponse() interface{}
 	DecodeRequest(context.Context, *http.Request) (request interface{}, err error)
 	EncodeResponse(context.Context, http.ResponseWriter, interface{}) error
+	ErrorEncoder( context.Context, error, http.ResponseWriter)
 }

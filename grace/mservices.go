@@ -435,28 +435,28 @@ func (srv *MicroService) NewRestEndpoint(svc rest.RestService) endpoint.Endpoint
 			return nil, errors.New("no request avaliable.")
 		}
 
-		req := request.(rest.Mcontext)
+		req := request.(*rest.Mcontext)
 		req.Tracer = srv.tracer
 
 		var ret interface{}
 		var err error
 		switch req.Method {
 		case "GET":
-			ret, err = svc.Get(ctx, &req)
+			ret, err = svc.Get(ctx, req)
 		case "POST":
-			ret, err = svc.Post(ctx, &req)
+			ret, err = svc.Post(ctx, req)
 		case "PUT":
-			ret, err = svc.Put(ctx, &req)
+			ret, err = svc.Put(ctx, req)
 		case "DELETE":
-			ret, err = svc.Delete(ctx, &req)
+			ret, err = svc.Delete(ctx, req)
 		case "HEAD":
-			ret, err = svc.Head(ctx, &req)
+			ret, err = svc.Head(ctx, req)
 		case "PATCH":
-			ret, err = svc.Patch(ctx, &req)
+			ret, err = svc.Patch(ctx, req)
 		case "OPTIONS":
-			ret, err = svc.Options(ctx, &req)
+			ret, err = svc.Options(ctx, req)
 		case "TRACE":
-			ret, err = svc.Trace(ctx, &req)
+			ret, err = svc.Trace(ctx, req)
 		case "CONNECT":
 		}
 
@@ -474,7 +474,7 @@ func (srv *MicroService) NewEndpoint() endpoint.Endpoint {
 			return nil, errors.New("no request avaliable.")
 		}
 
-		req := request.(rest.Request)
+		req := request.(*rest.Mcontext)
 		req.Tracer = srv.tracer
 
 		return req, nil
