@@ -6,6 +6,8 @@ import (
 	"crypto/x509"
 	"errors"
 	"fmt"
+	opentracing "github.com/libra9z/mskit/trace"
+	"github.com/go-kit/kit/transport"
 	"io/ioutil"
 	"net"
 	"net/http"
@@ -18,11 +20,9 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/go-kit/kit/endpoint"
-	"github.com/go-kit/kit/tracing/opentracing"
-	"github.com/go-kit/kit/tracing/zipkin"
-	"github.com/go-kit/kit/transport"
-	mshttp "github.com/go-kit/kit/transport/http"
+	"github.com/libra9z/mskit/endpoint"
+	zipkin "github.com/libra9z/mskit/trace"
+	"github.com/libra9z/mskit/engine"
 	"github.com/libra9z/httprouter"
 	"github.com/libra9z/mskit/log"
 	"github.com/libra9z/mskit/rest"
@@ -501,7 +501,7 @@ func (srv *MicroService) RegisterSwaggerDoc(path string, handler http.HandlerFun
 	srv.Router.HandlerFunc("GET", path, handler)
 }
 
-func (srv *MicroService) NewHttpHandler(withTracer bool, path string, r rest.RestService, middlewares ...rest.RestMiddleware) *mshttp.Server {
+func (srv *MicroService) NewHttpHandler(withTracer bool, path string, r rest.RestService, middlewares ...rest.RestMiddleware) *engine.Engine {
 
 	r.SetRouter(srv.Router)
 
@@ -513,38 +513,58 @@ func (srv *MicroService) NewHttpHandler(withTracer bool, path string, r rest.Res
 
 	var zipkinTracer *zipk.Tracer
 
-	var options []mshttp.ServerOption
+	var options []engine.ServerOption
 
 	if srv.tracer != nil {
 		zipkinTracer = srv.tracer.GetZipkinTracer()
 		if srv.tracer.GetOpenTracer() != nil && withTracer {
 			svc = opentracing.TraceServer(srv.tracer.GetOpenTracer(), path)(svc)
-			options = append(options, mshttp.ServerBefore(opentracing.HTTPToContext(srv.tracer.GetOpenTracer(), path, srv.logger)))
+			options = append(options, engine.ServerBefore(trace.HTTPToContext(srv.tracer.GetOpenTracer(), path, srv.logger)))
 		}
 	}
 
 	if zipkinTracer != nil {
 		zipkinServer := zipkin.HTTPServerTrace(zipkinTracer)
 		if withTracer {
-			options = []mshttp.ServerOption{
-				mshttp.ServerErrorEncoder(rest.ErrorEncoder),
-				mshttp.ServerErrorHandler(transport.NewLogErrorHandler(srv.logger)),
+			options = []engine.ServerOption{
+				engine.ServerErrorEncoder(rest.ErrorEncoder),
+				engine.ServerErrorHandler(transport.NewLogErrorHandler(srv.logger)),
 				zipkinServer,
 			}
 		} else {
-			options = []mshttp.ServerOption{
-				mshttp.ServerErrorEncoder(rest.ErrorEncoder),
-				mshttp.ServerErrorHandler(transport.NewLogErrorHandler(srv.logger)),
+			options = []engine.ServerOption{
+				engine.ServerErrorEncoder(rest.ErrorEncoder),
+				engine.ServerErrorHandler(transport.NewLogErrorHandler(srv.logger)),
 			}
 		}
 	} else {
-		options = []mshttp.ServerOption{
-			mshttp.ServerErrorEncoder(rest.ErrorEncoder),
-			mshttp.ServerErrorHandler(transport.NewLogErrorHandler(srv.logger)),
+		options = []engine.ServerOption{
+			engine.ServerErrorEncoder(rest.ErrorEncoder),
+			engine.ServerErrorHandler(transport.NewLogErrorHandler(srv.logger)),
 		}
 	}
+	var before []engine.RequestFunc
 
-	handler := mshttp.NewServer(
+	for _, f := range r.Before() {
+		before = append(before,func(ctx context.Context,req *http.Request,w http.ResponseWriter) context.Context {
+			r.Mcontext().Request = req
+			f(r.Mcontext(),w)
+			return ctx
+		})
+	}
+
+	engine.ServerBefore(before...)
+
+	var after []engine.ServerResponseFunc
+	for _, f := range r.After() {
+		after = append(after,func(ctx context.Context,w http.ResponseWriter) context.Context {
+			f(r.Mcontext(),w)
+			return ctx
+		})
+	}
+	engine.ServerAfter(after...)
+
+	handler := engine.NewEngine(
 		svc,
 		r.DecodeRequest,
 		r.EncodeResponse,
@@ -598,34 +618,34 @@ func (srv *MicroService) NewHandlerFunc(withTracer bool, path string, handlerFun
 
 		var zipkinTracer *zipk.Tracer
 
-		var options []mshttp.ServerOption
+		var options []engine.ServerOption
 
 		if srv.tracer != nil {
 			zipkinTracer = srv.tracer.GetZipkinTracer()
 			if srv.tracer.GetOpenTracer() != nil && withTracer {
 				svc = opentracing.TraceServer(srv.tracer.GetOpenTracer(), path)(svc)
-				options = append(options, mshttp.ServerBefore(opentracing.HTTPToContext(srv.tracer.GetOpenTracer(), path, srv.logger)))
+				options = append(options, engine.ServerBefore(trace.HTTPToContext(srv.tracer.GetOpenTracer(), path, srv.logger)))
 			}
 		}
 
 		if zipkinTracer != nil {
 			zipkinServer := zipkin.HTTPServerTrace(zipkinTracer)
 			if withTracer {
-				options = []mshttp.ServerOption{
-					mshttp.ServerErrorEncoder(rest.ErrorEncoder),
-					mshttp.ServerErrorHandler(transport.NewLogErrorHandler(srv.logger)),
+				options = []engine.ServerOption{
+					engine.ServerErrorEncoder(rest.ErrorEncoder),
+					engine.ServerErrorHandler(transport.NewLogErrorHandler(srv.logger)),
 					zipkinServer,
 				}
 			} else {
-				options = []mshttp.ServerOption{
-					mshttp.ServerErrorEncoder(rest.ErrorEncoder),
-					mshttp.ServerErrorHandler(transport.NewLogErrorHandler(srv.logger)),
+				options = []engine.ServerOption{
+					engine.ServerErrorEncoder(rest.ErrorEncoder),
+					engine.ServerErrorHandler(transport.NewLogErrorHandler(srv.logger)),
 				}
 			}
 		} else {
-			options = []mshttp.ServerOption{
-				mshttp.ServerErrorEncoder(rest.ErrorEncoder),
-				mshttp.ServerErrorHandler(transport.NewLogErrorHandler(srv.logger)),
+			options = []engine.ServerOption{
+				engine.ServerErrorEncoder(rest.ErrorEncoder),
+				engine.ServerErrorHandler(transport.NewLogErrorHandler(srv.logger)),
 			}
 		}
 

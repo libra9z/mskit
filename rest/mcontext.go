@@ -50,9 +50,11 @@ type Mcontext struct {
 	Userid        string //admin user prefix with 'a' ,user table prefix with 'u'
 	Tracer        trace.Tracer
 	AuthedOrgids  []int64
+	params 			*httprouter.Params
 
 	writermem responseWriter
 	Writer    ResponseWriter
+	useContextWriter bool
 	index    int8
 
 	// Errors is a list of errors attached to all the handlers/middlewares who used this context.
@@ -139,6 +141,17 @@ func NewContext() *Mcontext {
 // 	}
 // 	return ret
 // }
+func (c *Mcontext) reset() {
+	c.Writer = &c.writermem
+	c.Params = c.Params[:0]
+	c.index = -1
+
+	c.Queries = nil
+	c.Errors = c.Errors[:0]
+	c.Accepted = nil
+	c.queryCache = nil
+	c.formCache = nil
+}
 
 func (r *Mcontext) SetAuthorized(auth bool) {
 	r.IsAuthorized = auth
@@ -939,4 +952,9 @@ func (c *Mcontext) Error(err error) *me.Error {
 
 	c.Errors = append(c.Errors, parsedError)
 	return parsedError
+}
+
+
+func (c *Mcontext) UseContextWriter()  {
+	c.useContextWriter = true
 }

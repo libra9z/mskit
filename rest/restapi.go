@@ -15,12 +15,67 @@ import (
 
 var _ RestService = (*RestApi)(nil)
 
+const DefaultContextKey = "MskitABContext"
+// HandlerFunc defines the handler used by gin middleware as return value.
+type BeforeFunc func(*Mcontext,http.ResponseWriter)
+
+// HandlersChain defines a HandlerFunc array.
+type BeforesChain []BeforeFunc
+
+// Last returns the last handler in the chain. ie. the last handler is the main one.
+func (c BeforesChain) Last() BeforeFunc {
+	if length := len(c); length > 0 {
+		return c[length-1]
+	}
+	return nil
+}
+
+// HandlerFunc defines the handler used by gin middleware as return value.
+type AfterFunc func(*Mcontext,http.ResponseWriter)
+
+// HandlersChain defines a HandlerFunc array.
+type AftersChain []AfterFunc
+
+// Last returns the last handler in the chain. ie. the last handler is the main one.
+func (c AftersChain) Last() AfterFunc {
+	if length := len(c); length > 0 {
+		return c[length-1]
+	}
+	return nil
+}
 type RestApi struct {
 	Request   *http.Request
 	Router    *httprouter.Router
 	Counter   metrics.Counter
 	Gauge     metrics.Gauge
 	Histogram metrics.Histogram
+	after 		AftersChain
+	before 		BeforesChain
+	mc 			*Mcontext
+}
+
+func (c *RestApi) After() AftersChain {
+	return c.after
+}
+
+func (c *RestApi) Before() BeforesChain {
+	return c.before
+}
+
+func (c *RestApi) AfterUse( handlerFunc AfterFunc) {
+	c.after = append(c.after,handlerFunc)
+}
+
+func (c *RestApi) BeforeUse(handlerFunc BeforeFunc) {
+	c.before = append(c.before,handlerFunc)
+}
+
+func (c *RestApi) Mcontext()  *Mcontext{
+	return c.mc
+}
+
+func (c *RestApi) SetMcontext(mc *Mcontext)  {
+	c.mc = mc
 }
 
 // Get adds a request function to handle GET request.
@@ -78,13 +133,16 @@ func (c *RestApi) GetErrorResponse() interface{} {
 需要在nginx上配置
 proxy_set_header Remote_addr $remote_addr;
 */
-func (c *RestApi) DecodeRequest(_ context.Context, r *http.Request) (request interface{}, err error) {
+func (c *RestApi) DecodeRequest(ctx context.Context, r *http.Request,w http.ResponseWriter) (request interface{}, err error) {
 
 	c.Request = r
 
-	req := Mcontext{Queries: make(map[string]interface{})}
+	req := Mcontext{}
 
+	req.reset()
 	req.Method = r.Method
+	//req.writermem.reset(w)
+	req.Queries = make(map[string]interface{})
 
 	if c.Router == nil {
 		fmt.Printf("no router set.\n")
@@ -135,7 +193,10 @@ func (c *RestApi) DecodeRequest(_ context.Context, r *http.Request) (request int
 		req.ContentType = CONTENT_TYPE_MULTIFORM
 	}
 
-	return c.Prepare(&req)
+	c.mc = &req
+	c.mc.writermem.reset(w)
+	return c.mc,err
+
 }
 
 func (c *RestApi) Prepare(r *Mcontext) (*Mcontext, error) {
@@ -155,20 +216,30 @@ func (c *RestApi) Finish(w http.ResponseWriter, response interface{}) error {
 	w.Header().Add("Access-Control-Allow-Headers", "Content-Type,Origin,Accept,Content-Range,Content-Description,Content-Disposition")
 	w.Header().Add("Access-Control-Allow-Methods", "PUT,GET,POST,DELETE,OPTIONS")
 
+	w.Header().Set("Content-Type",MIMEJSON)
+
 	err := json.NewEncoder(w).Encode(response)
 	return err
 }
 
 // EncodeResponse adds a restservice used for endpoint.
-func (c *RestApi) EncodeResponse(_ context.Context, w http.ResponseWriter, response interface{}) error {
+func (c *RestApi) EncodeResponse(ctx context.Context, w http.ResponseWriter, response interface{}) error {
+
+	var err error
 
 	if response == nil {
 		response = ""
 	}
-
 	w.Header().Set("Allow", "HEAD,GET,PUT,DELETE,OPTIONS,POST")
 
-	err := c.Finish(w, response)
+
+	for _,f := range c.After() {
+		f(c.mc,w)
+	}
+
+	if !c.mc.useContextWriter {
+		err = c.Finish(w, response)
+	}
 
 	return err
 }
