@@ -6,8 +6,6 @@ import (
 	"crypto/x509"
 	"errors"
 	"fmt"
-	opentracing "github.com/libra9z/mskit/trace"
-	"github.com/go-kit/kit/transport"
 	"io/ioutil"
 	"net"
 	"net/http"
@@ -20,13 +18,16 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/libra9z/mskit/endpoint"
-	zipkin "github.com/libra9z/mskit/trace"
-	"github.com/libra9z/mskit/engine"
+	"github.com/go-kit/kit/transport"
+	opentracing "github.com/libra9z/mskit/trace"
+
 	"github.com/libra9z/httprouter"
+	"github.com/libra9z/mskit/endpoint"
+	"github.com/libra9z/mskit/engine"
 	"github.com/libra9z/mskit/log"
 	"github.com/libra9z/mskit/rest"
 	"github.com/libra9z/mskit/trace"
+	zipkin "github.com/libra9z/mskit/trace"
 	zipk "github.com/openzipkin/zipkin-go"
 )
 
@@ -526,43 +527,43 @@ func (srv *MicroService) NewHttpHandler(withTracer bool, path string, r rest.Res
 	if zipkinTracer != nil {
 		zipkinServer := zipkin.HTTPServerTrace(zipkinTracer)
 		if withTracer {
-			options = []engine.ServerOption{
+			options = append(options, []engine.ServerOption{
 				engine.ServerErrorEncoder(rest.ErrorEncoder),
 				engine.ServerErrorHandler(transport.NewLogErrorHandler(srv.logger)),
 				zipkinServer,
-			}
+			}...)
 		} else {
-			options = []engine.ServerOption{
+			options = append(options, []engine.ServerOption{
 				engine.ServerErrorEncoder(rest.ErrorEncoder),
 				engine.ServerErrorHandler(transport.NewLogErrorHandler(srv.logger)),
-			}
+			}...)
 		}
 	} else {
-		options = []engine.ServerOption{
+		options = append(options, []engine.ServerOption{
 			engine.ServerErrorEncoder(rest.ErrorEncoder),
 			engine.ServerErrorHandler(transport.NewLogErrorHandler(srv.logger)),
-		}
+		}...)
 	}
 	var before []engine.RequestFunc
 
 	for _, f := range r.Before() {
-		before = append(before,func(ctx context.Context,req *http.Request,w http.ResponseWriter) context.Context {
+		before = append(before, func(ctx context.Context, req *http.Request, w http.ResponseWriter) context.Context {
 			r.Mcontext().Request = req
-			f(r.Mcontext(),w)
+			f(r.Mcontext(), w)
 			return ctx
 		})
 	}
 
-	engine.ServerBefore(before...)
+	options = append(options, engine.ServerBefore(before...))
 
 	var after []engine.ServerResponseFunc
 	for _, f := range r.After() {
-		after = append(after,func(ctx context.Context,w http.ResponseWriter) context.Context {
-			f(r.Mcontext(),w)
+		after = append(after, func(ctx context.Context, w http.ResponseWriter) context.Context {
+			f(r.Mcontext(), w)
 			return ctx
 		})
 	}
-	engine.ServerAfter(after...)
+	options = append(options, engine.ServerAfter(after...))
 
 	handler := engine.NewEngine(
 		svc,
@@ -570,7 +571,6 @@ func (srv *MicroService) NewHttpHandler(withTracer bool, path string, r rest.Res
 		r.EncodeResponse,
 		options...,
 	)
-
 	return handler
 }
 
