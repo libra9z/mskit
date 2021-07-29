@@ -232,10 +232,10 @@ func (c *RestApi) EncodeResponse(ctx context.Context, w http.ResponseWriter, res
 	}
 	w.Header().Set("Allow", "HEAD,GET,PUT,DELETE,OPTIONS,POST")
 
-
-	for _,f := range c.After() {
-		f(c.mc,w)
-	}
+	//
+	//for _,f := range c.After() {
+	//	f(c.mc,w)
+	//}
 
 	if !c.mc.useContextWriter {
 		err = c.Finish(w, response)
