@@ -114,9 +114,12 @@ func (s Engine) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	for _, f := range s.before {
-		ctx = f(ctx, r,w)
+	for i:=0;i<len(s.before);i++ {
+		ctx = s.before[i](ctx, r,w)
 	}
+	//for _, f := range s.before {
+	//	ctx = f(ctx, r,w)
+	//}
 
 
 	response, err := s.e(ctx, request)
@@ -126,9 +129,12 @@ func (s Engine) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	for _, f := range s.after {
-		ctx = f(ctx, w)
+	for i:=0;i<len(s.after);i++ {
+		ctx = s.after[i](ctx, w)
 	}
+	//for _, f := range s.after {
+	//	ctx = f(ctx, w)
+	//}
 
 	if err := s.enc(ctx, w, response); err != nil {
 		s.errorHandler.Handle(ctx, err)

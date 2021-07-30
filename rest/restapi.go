@@ -62,12 +62,12 @@ func (c *RestApi) Before() BeforesChain {
 	return c.before
 }
 
-func (c *RestApi) AfterUse( handlerFunc AfterFunc) {
-	c.after = append(c.after,handlerFunc)
+func (c *RestApi) AfterUse( handlerFunc ...AfterFunc) {
+	c.after = append(c.after,handlerFunc...)
 }
 
-func (c *RestApi) BeforeUse(handlerFunc BeforeFunc) {
-	c.before = append(c.before,handlerFunc)
+func (c *RestApi) BeforeUse(handlerFunc ...BeforeFunc) {
+	c.before = append(c.before,handlerFunc...)
 }
 
 func (c *RestApi) Mcontext()  *Mcontext{

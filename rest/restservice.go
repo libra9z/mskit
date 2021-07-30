@@ -51,8 +51,8 @@ type RestService interface {
 
 	After() 	AftersChain
 	Before() 	BeforesChain
-	AfterUse( handlerFunc AfterFunc )
-	BeforeUse( handlerFunc BeforeFunc )
+	AfterUse( handlerFunc ...AfterFunc )
+	BeforeUse( handlerFunc ...BeforeFunc )
 	Mcontext() *Mcontext
 	SetMcontext(*Mcontext)
 
