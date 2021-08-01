@@ -5,8 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	_const "github.com/libra9z/mskit/const"
-	"github.com/libra9z/mskit/grace"
-	"github.com/libra9z/utils"
 	"github.com/nacos-group/nacos-sdk-go/clients"
 	"github.com/nacos-group/nacos-sdk-go/common/constant"
 	"github.com/nacos-group/nacos-sdk-go/vo"
@@ -17,6 +15,8 @@ import (
 	"reflect"
 	"strconv"
 	"strings"
+	"github.com/libra9z/mskit/grace"
+	"github.com/libra9z/utils"
 )
 
 func NacosRegister(app *grace.MicroService, schema, name string, prefix string, addr, nacos, token string, callback ServiceCallback, params map[string]interface{}) {
