@@ -30,6 +30,7 @@ const (
 	MIMEMultipartPOSTForm = binding.MIMEMultipartPOSTForm
 	MIMEYAML              = binding.MIMEYAML
 )
+
 // BodyBytesKey indicates a default body bytes key.
 const BodyBytesKey = "_libra9z/mskit/bodybyteskey"
 
@@ -37,25 +38,25 @@ const BodyBytesKey = "_libra9z/mskit/bodybyteskey"
 const abortIndex int8 = math.MaxInt8 >> 1
 
 type Mcontext struct {
-	IsAuthorized  bool
-	LicExpired    bool
-	Version       string
-	Params        httprouter.Params
-	Queries       map[string]interface{}
-	Body          []byte
-	Method        string
-	RemoteAddr    string
-	Request 	 *http.Request
-	ContentType   int
-	Userid        string //admin user prefix with 'a' ,user table prefix with 'u'
-	Tracer        trace.Tracer
-	AuthedOrgids  []int64
-	params 			*httprouter.Params
+	IsAuthorized bool
+	LicExpired   bool
+	Version      string
+	Params       httprouter.Params
+	Queries      map[string]interface{}
+	Body         []byte
+	Method       string
+	RemoteAddr   string
+	Request      *http.Request
+	ContentType  int
+	Userid       string //admin user prefix with 'a' ,user table prefix with 'u'
+	Tracer       trace.Tracer
+	AuthedOrgids []int64
+	params       *httprouter.Params
 
-	writermem responseWriter
-	Writer    ResponseWriter
+	writermem        responseWriter
+	Writer           ResponseWriter
 	useContextWriter bool
-	index    int8
+	index            int8
 
 	// Errors is a list of errors attached to all the handlers/middlewares who used this context.
 	Errors me.ErrorMsgs
@@ -77,8 +78,6 @@ type Mcontext struct {
 	// the browser to send this cookie along with cross-site requests.
 	sameSite http.SameSite
 }
-
-type Request struct {Mcontext}
 
 const (
 	maxParam               = 50
@@ -715,7 +714,6 @@ func (c *Mcontext) IndentedJSON(code int, obj interface{}) {
 	c.Render(code, render.IndentedJSON{Data: obj})
 }
 
-
 // JSONP serializes the given struct as JSON into the response body.
 // It adds padding to response body to request data from a server residing in a different domain than the client.
 // It also sets the Content-Type as "application/javascript".
@@ -954,7 +952,6 @@ func (c *Mcontext) Error(err error) *me.Error {
 	return parsedError
 }
 
-
-func (c *Mcontext) UseContextWriter()  {
+func (c *Mcontext) UseContextWriter() {
 	c.useContextWriter = true
 }
