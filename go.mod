@@ -9,7 +9,7 @@ require (
 	github.com/golang/protobuf v1.5.2
 	github.com/hashicorp/consul/api v1.9.1
 	github.com/json-iterator/go v1.1.11
-	github.com/libra9z/httprouter v0.0.0-00010101000000-000000000000
+	github.com/libra9z/httprouter v1.2.2
 	github.com/libra9z/utils v1.0.3
 	github.com/nacos-group/nacos-sdk-go v1.0.8
 	github.com/opentracing/opentracing-go v1.2.0
@@ -21,5 +21,3 @@ require (
 	google.golang.org/grpc/examples v0.0.0-20210715165331-ce7bdf50abb1 // indirect
 	gopkg.in/yaml.v2 v2.3.0
 )
-
-replace github.com/libra9z/httprouter => ../httprouter

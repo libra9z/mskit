@@ -304,6 +304,8 @@ github.com/lestrrat/go-file-rotatelogs v0.0.0-20180223000712-d3151e2a480f h1:sgU
 github.com/lestrrat/go-file-rotatelogs v0.0.0-20180223000712-d3151e2a480f/go.mod h1:UGmTpUd3rjbtfIpwAPrcfmGf/Z1HS95TATB+m57TPB8=
 github.com/lestrrat/go-strftime v0.0.0-20180220042222-ba3bf9c1d042 h1:Bvq8AziQ5jFF4BHGAEDSqwPW1NJS3XshxbRCxtjFAZc=
 github.com/lestrrat/go-strftime v0.0.0-20180220042222-ba3bf9c1d042/go.mod h1:TPpsiPUEh0zFL1Snz4crhMlBe60PYxRHr5oFF3rRYg0=
+github.com/libra9z/httprouter v1.2.2 h1:rN3IFRLoWw8C+koxvbsKfH70Keop/TPjUvq1MJwOYq8=
+github.com/libra9z/httprouter v1.2.2/go.mod h1:Qh/uVG+xOf5O/Fc0HQaL7FhkIuEnEQiPgUWxbHSuqqI=
 github.com/libra9z/mahonia v0.0.0-20150731031913-6d9f3cf9f957 h1:TlkvTqw1AKy03P+UBdWIlIakmwJD59CF4vNCMXtjBq0=
 github.com/libra9z/mahonia v0.0.0-20150731031913-6d9f3cf9f957/go.mod h1:btkpW9KU/nZVcbIoXLa79V1m3M0qff/a1UDyo2PFXDM=
 github.com/libra9z/utils v1.0.3 h1:VlW2TwSJeS+lCjZ80IajxM7YsVU2Okf5ju7V0Z2RAPw=
