@@ -4,8 +4,9 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"github.com/libra9z/httprouter"
 	"net/http"
+
+	"github.com/libra9z/httprouter"
 )
 
 var (
@@ -21,8 +22,7 @@ var (
 	// ErrMaxSizeExceeded protects the Concat method.
 	ErrMaxSizeExceeded = errors.New("result exceeds maximum size")
 )
-
-func ErrorEncoder(_ context.Context, err error, w http.ResponseWriter) {
+func ErrorEncoder(ctx context.Context, err error, w http.ResponseWriter) {
 	code := http.StatusInternalServerError
 	msg := err.Error()
 
@@ -35,23 +35,31 @@ func ErrorEncoder(_ context.Context, err error, w http.ResponseWriter) {
 	json.NewEncoder(w).Encode(errorWrapper{Error: msg})
 }
 
-type errorWrapper struct {
-	Error string `json:"error"`
-}
 
 type RestService interface {
-	Get(context.Context, *Request) (interface{}, error)
-	Post(context.Context, *Request) (interface{}, error)
-	Delete(context.Context, *Request) (interface{}, error)
-	Put(context.Context, *Request) (interface{}, error)
-	Head(context.Context, *Request) (interface{}, error)
-	Patch(context.Context, *Request) (interface{}, error)
-	Options(context.Context, *Request) (interface{}, error)
-	Trace(context.Context, *Request) (interface{}, error)
+	Get(context.Context, *Mcontext) (interface{}, error)
+	Post(context.Context, *Mcontext) (interface{}, error)
+	Delete(context.Context, *Mcontext) (interface{}, error)
+	Put(context.Context, *Mcontext) (interface{}, error)
+	Head(context.Context, *Mcontext) (interface{}, error)
+	Patch(context.Context, *Mcontext) (interface{}, error)
+	Options(context.Context, *Mcontext) (interface{}, error)
+	Trace(context.Context, *Mcontext) (interface{}, error)
+
+	Prepare(r *Mcontext) (*Mcontext, error)
+	Finish(w http.ResponseWriter, response interface{}) error
+
+	After() 	AftersChain
+	Before() 	BeforesChain
+	AfterUse( handlerFunc ...AfterFunc )
+	BeforeUse( handlerFunc ...BeforeFunc )
+	Mcontext() *Mcontext
+	SetMcontext(*Mcontext)
 
 	//response relate interface
 	SetRouter(router *httprouter.Router)
 	GetErrorResponse() interface{}
-	DecodeRequest(context.Context, *http.Request) (request interface{}, err error)
+	DecodeRequest(context.Context, *http.Request,http.ResponseWriter) (request interface{}, err error)
 	EncodeResponse(context.Context, http.ResponseWriter, interface{}) error
+	ErrorEncoder( context.Context, error, http.ResponseWriter)
 }

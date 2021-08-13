@@ -1,20 +1,23 @@
 module github.com/libra9z/mskit
 
-go 1.14
+go 1.16
 
 require (
-	github.com/disintegration/imaging v1.6.2 // indirect
-	github.com/fgrid/uuid v0.1.0 // indirect
-	github.com/go-kit/kit v0.10.0
-	github.com/hashicorp/consul/api v1.8.0
-	github.com/libra9z/httprouter v1.2.0
-	github.com/libra9z/mahonia v0.0.0-20150731031913-6d9f3cf9f957 // indirect
-	github.com/libra9z/utils v0.0.0-20200531104440-670e4d45d67d
-	github.com/nacos-group/nacos-sdk-go v1.0.3
+	github.com/go-kit/kit v0.11.0
+	github.com/go-playground/validator/v10 v10.9.0
+	github.com/goccy/go-json v0.7.6
+	github.com/golang/protobuf v1.5.2
+	github.com/hashicorp/consul/api v1.9.1
+	github.com/json-iterator/go v1.1.11
+	github.com/libra9z/httprouter v1.2.2
+	github.com/libra9z/utils v1.0.3
+	github.com/nacos-group/nacos-sdk-go v1.0.8
 	github.com/opentracing/opentracing-go v1.2.0
-	github.com/openzipkin/zipkin-go v0.2.3
-	github.com/rcrowley/go-metrics v0.0.0-20200313005456-10cdbea86bc0
-	github.com/smallnest/rpcx v0.0.0-20201230085650-d80d87590afd
+	github.com/openzipkin/zipkin-go v0.2.5
+	github.com/rcrowley/go-metrics v0.0.0-20201227073835-cf1acfcdf475
+	github.com/smallnest/rpcx v1.6.9
+	github.com/stretchr/testify v1.7.0
+	github.com/ugorji/go/codec v1.2.6
+	google.golang.org/grpc/examples v0.0.0-20210812181202-a42567fe92f0 // indirect
+	gopkg.in/yaml.v2 v2.4.0
 )
-
-replace google.golang.org/grpc => google.golang.org/grpc v1.26.0

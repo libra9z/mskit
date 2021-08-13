@@ -6,16 +6,6 @@ import (
 	"crypto/x509"
 	"errors"
 	"fmt"
-	"github.com/go-kit/kit/endpoint"
-	"github.com/go-kit/kit/tracing/opentracing"
-	"github.com/go-kit/kit/tracing/zipkin"
-	mshttp "github.com/go-kit/kit/transport/http"
-	"github.com/go-kit/kit/transport"
-	"github.com/libra9z/httprouter"
-	"github.com/libra9z/mskit/log"
-	"github.com/libra9z/mskit/rest"
-	"github.com/libra9z/mskit/trace"
-	zipk "github.com/openzipkin/zipkin-go"
 	"io/ioutil"
 	"net"
 	"net/http"
@@ -27,6 +17,18 @@ import (
 	"sync"
 	"syscall"
 	"time"
+
+	"github.com/go-kit/kit/transport"
+	opentracing "github.com/libra9z/mskit/trace"
+
+	"github.com/libra9z/httprouter"
+	"github.com/libra9z/mskit/endpoint"
+	"github.com/libra9z/mskit/engine"
+	"github.com/libra9z/mskit/log"
+	"github.com/libra9z/mskit/rest"
+	"github.com/libra9z/mskit/trace"
+	zipkin "github.com/libra9z/mskit/trace"
+	zipk "github.com/openzipkin/zipkin-go"
 )
 
 // App defines msrest application with a new PatternServeMux.
@@ -44,7 +46,7 @@ type MicroService struct {
 	isChild          bool
 	state            uint8
 	Network          string
-	Meta 			 map[string]interface{}
+	Meta             map[string]interface{}
 }
 
 /**
@@ -434,28 +436,28 @@ func (srv *MicroService) NewRestEndpoint(svc rest.RestService) endpoint.Endpoint
 			return nil, errors.New("no request avaliable.")
 		}
 
-		req := request.(rest.Request)
+		req := request.(*rest.Mcontext)
 		req.Tracer = srv.tracer
 
 		var ret interface{}
 		var err error
 		switch req.Method {
 		case "GET":
-			ret, err = svc.Get(ctx, &req)
+			ret, err = svc.Get(ctx, req)
 		case "POST":
-			ret, err = svc.Post(ctx, &req)
+			ret, err = svc.Post(ctx, req)
 		case "PUT":
-			ret, err = svc.Put(ctx, &req)
+			ret, err = svc.Put(ctx, req)
 		case "DELETE":
-			ret, err = svc.Delete(ctx, &req)
+			ret, err = svc.Delete(ctx, req)
 		case "HEAD":
-			ret, err = svc.Head(ctx, &req)
+			ret, err = svc.Head(ctx, req)
 		case "PATCH":
-			ret, err = svc.Patch(ctx, &req)
+			ret, err = svc.Patch(ctx, req)
 		case "OPTIONS":
-			ret, err = svc.Options(ctx, &req)
+			ret, err = svc.Options(ctx, req)
 		case "TRACE":
-			ret, err = svc.Trace(ctx, &req)
+			ret, err = svc.Trace(ctx, req)
 		case "CONNECT":
 		}
 
@@ -473,7 +475,7 @@ func (srv *MicroService) NewEndpoint() endpoint.Endpoint {
 			return nil, errors.New("no request avaliable.")
 		}
 
-		req := request.(rest.Request)
+		req := request.(*rest.Mcontext)
 		req.Tracer = srv.tracer
 
 		return req, nil
@@ -500,7 +502,7 @@ func (srv *MicroService) RegisterSwaggerDoc(path string, handler http.HandlerFun
 	srv.Router.HandlerFunc("GET", path, handler)
 }
 
-func (srv *MicroService) NewHttpHandler(withTracer bool, path string, r rest.RestService, middlewares ...rest.RestMiddleware) *mshttp.Server {
+func (srv *MicroService) NewHttpHandler(withTracer bool, path string, r rest.RestService, middlewares ...rest.RestMiddleware) *engine.Engine {
 
 	r.SetRouter(srv.Router)
 
@@ -512,44 +514,63 @@ func (srv *MicroService) NewHttpHandler(withTracer bool, path string, r rest.Res
 
 	var zipkinTracer *zipk.Tracer
 
-	var options []mshttp.ServerOption
+	var options []engine.ServerOption
 
 	if srv.tracer != nil {
 		zipkinTracer = srv.tracer.GetZipkinTracer()
 		if srv.tracer.GetOpenTracer() != nil && withTracer {
 			svc = opentracing.TraceServer(srv.tracer.GetOpenTracer(), path)(svc)
-			options = append(options, mshttp.ServerBefore(opentracing.HTTPToContext(srv.tracer.GetOpenTracer(), path, srv.logger)))
+			options = append(options, engine.ServerBefore(trace.HTTPToContext(srv.tracer.GetOpenTracer(), path, srv.logger)))
 		}
 	}
 
 	if zipkinTracer != nil {
 		zipkinServer := zipkin.HTTPServerTrace(zipkinTracer)
 		if withTracer {
-			options = []mshttp.ServerOption{
-				mshttp.ServerErrorEncoder(rest.ErrorEncoder),
-				mshttp.ServerErrorHandler(transport.NewLogErrorHandler(srv.logger)),
+			options = append(options, []engine.ServerOption{
+				engine.ServerErrorEncoder(rest.ErrorEncoder),
+				engine.ServerErrorHandler(transport.NewLogErrorHandler(srv.logger)),
 				zipkinServer,
-			}
+			}...)
 		} else {
-			options = []mshttp.ServerOption{
-				mshttp.ServerErrorEncoder(rest.ErrorEncoder),
-				mshttp.ServerErrorHandler(transport.NewLogErrorHandler(srv.logger)),
-			}
+			options = append(options, []engine.ServerOption{
+				engine.ServerErrorEncoder(rest.ErrorEncoder),
+				engine.ServerErrorHandler(transport.NewLogErrorHandler(srv.logger)),
+			}...)
 		}
 	} else {
-		options = []mshttp.ServerOption{
-			mshttp.ServerErrorEncoder(rest.ErrorEncoder),
-			mshttp.ServerErrorHandler(transport.NewLogErrorHandler(srv.logger)),
-		}
+		options = append(options, []engine.ServerOption{
+			engine.ServerErrorEncoder(rest.ErrorEncoder),
+			engine.ServerErrorHandler(transport.NewLogErrorHandler(srv.logger)),
+		}...)
+	}
+	var before []engine.RequestFunc
+
+	for _, f := range r.Before() {
+		before = append(before, func(ctx context.Context, req *http.Request, w http.ResponseWriter) context.Context {
+			r.Mcontext().Request = req
+			f(r.Mcontext(), w)
+			return ctx
+		})
 	}
 
-	handler := mshttp.NewServer(
+	options = append(options, engine.ServerBefore(before...))
+
+	var after []engine.ServerResponseFunc
+	for _, f := range r.After() {
+		after = append(after, func(ctx context.Context, w http.ResponseWriter) context.Context {
+			f(r.Mcontext(), w)
+			return ctx
+		})
+	}
+	options = append(options, engine.ServerAfter(after...))
+
+	handler := engine.NewEngine(
 		svc,
 		r.DecodeRequest,
 		r.EncodeResponse,
 		options...,
 	)
-
 	return handler
 }
 
@@ -568,13 +589,13 @@ func (srv *MicroService) RegisterRestService(path string, rest rest.RestService,
 	regRoute(srv.Router, path, handler)
 }
 
-func (srv *MicroService) Handler(method, path string, ohandler http.Handler,middlewares ...rest.RestMiddleware) {
+func (srv *MicroService) Handler(method, path string, ohandler http.Handler, middlewares ...rest.RestMiddleware) {
 
 	//handler := srv.NewHttpHandler(false, path, rest, middlewares...)
 	handler := ohandler
 	srv.Router.Handler(method, path, handler)
 }
-func (srv *MicroService) HandlerFunc(method, path string, handlerFunc http.HandlerFunc, tracer trace.Tracer, logger log.Logger,middlewares ...rest.RestMiddleware) {
+func (srv *MicroService) HandlerFunc(method, path string, handlerFunc http.HandlerFunc, tracer trace.Tracer, logger log.Logger, middlewares ...rest.RestMiddleware) {
 
 	srv.SetTracer(tracer)
 	srv.SetLogger(logger)
@@ -585,7 +606,7 @@ func (srv *MicroService) HandlerFunc(method, path string, handlerFunc http.Handl
 	srv.Router.HandlerFunc(method, path, handler)
 }
 
-func (srv *MicroService) NewHandlerFunc(withTracer bool, path string,handlerFunc http.HandlerFunc, middlewares ...rest.RestMiddleware) http.HandlerFunc {
+func (srv *MicroService) NewHandlerFunc(withTracer bool, path string, handlerFunc http.HandlerFunc, middlewares ...rest.RestMiddleware) http.HandlerFunc {
 
 	return func(w http.ResponseWriter, req *http.Request) {
 
@@ -595,41 +616,40 @@ func (srv *MicroService) NewHandlerFunc(withTracer bool, path string,handlerFunc
 			svc = middlewares[i].GetMiddleware()(middlewares[i].Object)(svc)
 		}
 
-
 		var zipkinTracer *zipk.Tracer
 
-		var options []mshttp.ServerOption
+		var options []engine.ServerOption
 
 		if srv.tracer != nil {
 			zipkinTracer = srv.tracer.GetZipkinTracer()
 			if srv.tracer.GetOpenTracer() != nil && withTracer {
 				svc = opentracing.TraceServer(srv.tracer.GetOpenTracer(), path)(svc)
-				options = append(options, mshttp.ServerBefore(opentracing.HTTPToContext(srv.tracer.GetOpenTracer(), path, srv.logger)))
+				options = append(options, engine.ServerBefore(trace.HTTPToContext(srv.tracer.GetOpenTracer(), path, srv.logger)))
 			}
 		}
 
 		if zipkinTracer != nil {
 			zipkinServer := zipkin.HTTPServerTrace(zipkinTracer)
 			if withTracer {
-				options = []mshttp.ServerOption{
-					mshttp.ServerErrorEncoder(rest.ErrorEncoder),
-					mshttp.ServerErrorHandler(transport.NewLogErrorHandler(srv.logger)),
+				options = []engine.ServerOption{
+					engine.ServerErrorEncoder(rest.ErrorEncoder),
+					engine.ServerErrorHandler(transport.NewLogErrorHandler(srv.logger)),
 					zipkinServer,
 				}
 			} else {
-				options = []mshttp.ServerOption{
-					mshttp.ServerErrorEncoder(rest.ErrorEncoder),
-					mshttp.ServerErrorHandler(transport.NewLogErrorHandler(srv.logger)),
+				options = []engine.ServerOption{
+					engine.ServerErrorEncoder(rest.ErrorEncoder),
+					engine.ServerErrorHandler(transport.NewLogErrorHandler(srv.logger)),
 				}
 			}
 		} else {
-			options = []mshttp.ServerOption{
-				mshttp.ServerErrorEncoder(rest.ErrorEncoder),
-				mshttp.ServerErrorHandler(transport.NewLogErrorHandler(srv.logger)),
+			options = []engine.ServerOption{
+				engine.ServerErrorEncoder(rest.ErrorEncoder),
+				engine.ServerErrorHandler(transport.NewLogErrorHandler(srv.logger)),
 			}
 		}
 
-		handlerFunc(w,req)
+		handlerFunc(w, req)
 	}
 }
 

@@ -1,6 +1,6 @@
 package rest
 
-import "github.com/go-kit/kit/endpoint"
+import "github.com/libra9z/mskit/endpoint"
 
 type Middleware func(endpoint.Endpoint) endpoint.Endpoint
 
