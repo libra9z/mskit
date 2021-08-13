@@ -212,10 +212,6 @@ func (c *RestApi) Finish(w http.ResponseWriter, response interface{}) error {
 		return errors.New("writer is nil ")
 	}
 
-	w.Header().Add("Access-Control-Allow-Origin", "*")
-	w.Header().Add("Access-Control-Allow-Headers", "Content-Type,Origin,Accept,Content-Range,Content-Description,Content-Disposition")
-	w.Header().Add("Access-Control-Allow-Methods", "PUT,GET,POST,DELETE,OPTIONS")
-
 	w.Header().Set("Content-Type",MIMEJSON)
 
 	err := json.NewEncoder(w).Encode(response)
