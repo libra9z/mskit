@@ -195,6 +195,8 @@ func (c *RestApi) DecodeRequest(ctx context.Context, r *http.Request,w http.Resp
 
 	c.mc = &req
 	c.mc.writermem.reset(w)
+	c.Cors(w)
+
 	return c.mc,err
 
 }
@@ -215,8 +217,12 @@ func (c *RestApi) Prepare(r *Mcontext) (*Mcontext, error) {
 		w.Header().Add("Access-Control-Allow-Origin", "*")
 		w.Header().Add("Access-Control-Allow-Headers", "Content-Type,Origin,Accept,Content-Range,Content-Description,Content-Disposition")
 		w.Header().Add("Access-Control-Allow-Methods", "PUT,GET,POST,DELETE,OPTIONS")
+
+		c.mc.Header("Access-Control-Allow-Origin", "*")
+		c.mc.Header("Access-Control-Allow-Headers", "Content-Type,Origin,Accept,Content-Range,Content-Description,Content-Disposition")
+		c.mc.Header("Access-Control-Allow-Methods", "PUT,GET,POST,DELETE,OPTIONS")
 	}
-	
+
 	return nil
 }
 
@@ -246,9 +252,7 @@ func (c *RestApi) EncodeResponse(ctx context.Context, w http.ResponseWriter, res
 	//for _,f := range c.After() {
 	//	f(c.mc,w)
 	//}
-	
-	c.Cors(w)
-	
+
 	if !c.mc.useContextWriter {
 		err = c.Finish(w, response)
 	}
