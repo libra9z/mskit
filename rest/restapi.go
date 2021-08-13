@@ -206,15 +206,25 @@ func (c *RestApi) Prepare(r *Mcontext) (*Mcontext, error) {
 /*
 *该方法是在response返回之前调用，用于增加一下个性化的头信息
  */
+ func (c *RestApi) Cors(w http.ResponseWriter) error {
+
+	if w == nil {
+		return errors.New("writer is nil ")
+	}
+	if !c.mc.EnableCors {
+		w.Header().Add("Access-Control-Allow-Origin", "*")
+		w.Header().Add("Access-Control-Allow-Headers", "Content-Type,Origin,Accept,Content-Range,Content-Description,Content-Disposition")
+		w.Header().Add("Access-Control-Allow-Methods", "PUT,GET,POST,DELETE,OPTIONS")
+	}
+	
+	return nil
+}
+
 func (c *RestApi) Finish(w http.ResponseWriter, response interface{}) error {
 
 	if w == nil {
 		return errors.New("writer is nil ")
 	}
-
-	w.Header().Add("Access-Control-Allow-Origin", "*")
-	w.Header().Add("Access-Control-Allow-Headers", "Content-Type,Origin,Accept,Content-Range,Content-Description,Content-Disposition")
-	w.Header().Add("Access-Control-Allow-Methods", "PUT,GET,POST,DELETE,OPTIONS")
 
 	w.Header().Set("Content-Type",MIMEJSON)
 
@@ -236,7 +246,9 @@ func (c *RestApi) EncodeResponse(ctx context.Context, w http.ResponseWriter, res
 	//for _,f := range c.After() {
 	//	f(c.mc,w)
 	//}
-
+	
+	c.Cors(w)
+	
 	if !c.mc.useContextWriter {
 		err = c.Finish(w, response)
 	}
