@@ -209,7 +209,9 @@ func (c *RestApi) Finish(w http.ResponseWriter, response interface{}) error {
 		return errors.New("writer is nil ")
 	}
 	w.Header().Set("Content-Type",MIMEJSON)
-
+	w.Header().Add("Access-Control-Allow-Origin", "*")
+	w.Header().Add("Access-Control-Allow-Headers", "Content-Type,Origin,Accept,Content-Range,Content-Description,Content-Disposition")
+	w.Header().Add("Access-Control-Allow-Methods", "PUT,GET,POST,DELETE,OPTIONS")
 	err := json.NewEncoder(w).Encode(response)
 	return err
 }
@@ -222,14 +224,16 @@ func (c *RestApi) EncodeResponse(ctx context.Context, w http.ResponseWriter, res
 	if response == nil {
 		response = ""
 	}
-	if !c.mc.useContextWriter {
+	if !c.mc.useContextWriter && !c.mc.UseRender {
 		err = c.Finish(w, response)
 	}else{
-		switch c.mc.ContentType {
-		case CONTENT_TYPE_JSON:
-			c.mc.JSON(http.StatusOK,response)
-		case CONTENT_TYPE_XML:
-			c.mc.XML(http.StatusOK,response)
+		if !c.mc.UseRender {
+			switch c.mc.ContentType {
+			case CONTENT_TYPE_JSON:
+				c.mc.JSON(http.StatusOK, response)
+			case CONTENT_TYPE_XML:
+				c.mc.XML(http.StatusOK, response)
+			}
 		}
 	}
 

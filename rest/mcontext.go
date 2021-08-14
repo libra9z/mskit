@@ -57,6 +57,7 @@ type Mcontext struct {
 	Writer           ResponseWriter
 	useContextWriter bool
 	EnableCors	     bool
+	UseRender     	 bool
 	index            int8
 
 	// Errors is a list of errors attached to all the handlers/middlewares who used this context.
