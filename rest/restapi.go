@@ -135,7 +135,7 @@ func (c *RestApi) DecodeRequest(ctx context.Context, r *http.Request,w http.Resp
 	c.Request = r
 
 	req := Mcontext{}
-
+	req.Ctx = context.Background()
 	req.reset()
 	req.Method = r.Method
 	//req.writermem.reset(w)

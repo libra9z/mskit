@@ -1,12 +1,10 @@
-package engine
+package rest
 
 import (
 	"context"
 	"encoding/json"
-	"github.com/go-kit/kit/transport"
-	"github.com/libra9z/mskit/endpoint"
 	"github.com/go-kit/kit/log"
-
+	"github.com/libra9z/mskit/endpoint"
 	"net/http"
 )
 
@@ -19,7 +17,7 @@ type Engine struct {
 	after        []ServerResponseFunc
 	errorEncoder ErrorEncoder
 	finalizer    []ServerFinalizerFunc
-	errorHandler transport.ErrorHandler
+	errorHandler ErrorHandler
 }
 
 // NewServer constructs a new server, which implements http.Handler and wraps
@@ -35,7 +33,7 @@ func NewEngine(
 		dec:          dec,
 		enc:          enc,
 		errorEncoder: DefaultErrorEncoder,
-		errorHandler: transport.NewLogErrorHandler(log.NewNopLogger()),
+		errorHandler: NewLogErrorHandler(log.NewNopLogger()),
 	}
 	for _, option := range options {
 		option(s)
@@ -73,7 +71,7 @@ func ServerErrorEncoder(ee ErrorEncoder) ServerOption {
 // the context.
 // Deprecated: Use ServerErrorHandler instead.
 func ServerErrorLogger(logger log.Logger) ServerOption {
-	return func(s *Engine) { s.errorHandler = transport.NewLogErrorHandler(logger) }
+	return func(s *Engine) { s.errorHandler = NewLogErrorHandler(logger) }
 }
 
 // ServerErrorHandler is used to handle non-terminal errors. By default, non-terminal errors
@@ -81,7 +79,7 @@ func ServerErrorLogger(logger log.Logger) ServerOption {
 // of error handling, including logging in more detail, should be performed in a
 // custom ServerErrorEncoder or ServerFinalizer, both of which have access to
 // the context.
-func ServerErrorHandler(errorHandler transport.ErrorHandler) ServerOption {
+func ServerErrorHandler(errorHandler ErrorHandler) ServerOption {
 	return func(s *Engine) { s.errorHandler = errorHandler }
 }
 
@@ -114,13 +112,9 @@ func (s Engine) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	for i:=0;i<len(s.before);i++ {
-		ctx = s.before[i](ctx, r,w)
+	for _, f := range s.before {
+		f(request.(*Mcontext),w)
 	}
-	//for _, f := range s.before {
-	//	ctx = f(ctx, r,w)
-	//}
-
 
 	response, err := s.e(ctx, request)
 	if err != nil {
@@ -129,12 +123,9 @@ func (s Engine) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	for i:=0;i<len(s.after);i++ {
-		ctx = s.after[i](ctx, w)
+	for _, f := range s.after {
+		f(request.(*Mcontext), w)
 	}
-	//for _, f := range s.after {
-	//	ctx = f(ctx, w)
-	//}
 
 	if err := s.enc(ctx, w, response); err != nil {
 		s.errorHandler.Handle(ctx, err)

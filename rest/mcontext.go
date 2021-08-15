@@ -1,6 +1,7 @@
 package rest
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"github.com/libra9z/mskit/render"
@@ -48,6 +49,7 @@ type Mcontext struct {
 	RemoteAddr   string
 	Request      *http.Request
 	ContentType  int
+	Ctx 		 context.Context
 	Userid       string //admin user prefix with 'a' ,user table prefix with 'u'
 	Tracer       trace.Tracer
 	AuthedOrgids []int64

@@ -6,6 +6,7 @@ import (
 	"crypto/x509"
 	"errors"
 	"fmt"
+	zipk "github.com/openzipkin/zipkin-go"
 	"io/ioutil"
 	"net"
 	"net/http"
@@ -18,17 +19,13 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/go-kit/kit/transport"
-	opentracing "github.com/libra9z/mskit/trace"
-
 	"github.com/libra9z/httprouter"
 	"github.com/libra9z/mskit/endpoint"
-	"github.com/libra9z/mskit/engine"
 	"github.com/libra9z/mskit/log"
 	"github.com/libra9z/mskit/rest"
+	"github.com/libra9z/mskit/rest/opentrace"
+	"github.com/libra9z/mskit/rest/zipkin"
 	"github.com/libra9z/mskit/trace"
-	zipkin "github.com/libra9z/mskit/trace"
-	zipk "github.com/openzipkin/zipkin-go"
 )
 
 // App defines msrest application with a new PatternServeMux.
@@ -502,7 +499,7 @@ func (srv *MicroService) RegisterSwaggerDoc(path string, handler http.HandlerFun
 	srv.Router.HandlerFunc("GET", path, handler)
 }
 
-func (srv *MicroService) NewHttpHandler(withTracer bool, path string, r rest.RestService, middlewares ...rest.RestMiddleware) *engine.Engine {
+func (srv *MicroService) NewHttpHandler(withTracer bool, path string, r rest.RestService, middlewares ...rest.RestMiddleware) *rest.Engine {
 
 	r.SetRouter(srv.Router)
 
@@ -512,60 +509,53 @@ func (srv *MicroService) NewHttpHandler(withTracer bool, path string, r rest.Res
 		svc = middlewares[i].GetMiddleware()(middlewares[i].Object)(svc)
 	}
 
+	var options []rest.ServerOption
+
 	var zipkinTracer *zipk.Tracer
-
-	var options []engine.ServerOption
-
 	if srv.tracer != nil {
 		zipkinTracer = srv.tracer.GetZipkinTracer()
 		if srv.tracer.GetOpenTracer() != nil && withTracer {
-			svc = opentracing.TraceServer(srv.tracer.GetOpenTracer(), path)(svc)
-			options = append(options, engine.ServerBefore(trace.HTTPToContext(srv.tracer.GetOpenTracer(), path, srv.logger)))
+			svc = trace.TraceServer(srv.tracer.GetOpenTracer(), path)(svc)
+			options = append(options, rest.ServerBefore(opentrace.HTTPToContext(srv.tracer.GetOpenTracer(), path, srv.logger)))
 		}
 	}
 
 	if zipkinTracer != nil {
 		zipkinServer := zipkin.HTTPServerTrace(zipkinTracer)
 		if withTracer {
-			options = append(options, []engine.ServerOption{
-				engine.ServerErrorEncoder(rest.ErrorEncoder),
-				engine.ServerErrorHandler(transport.NewLogErrorHandler(srv.logger)),
+			options = append(options, []rest.ServerOption{
+				rest.ServerErrorEncoder(rest.JsonErrorEncoder),
+				rest.ServerErrorHandler(rest.NewLogErrorHandler(srv.logger)),
 				zipkinServer,
 			}...)
 		} else {
-			options = append(options, []engine.ServerOption{
-				engine.ServerErrorEncoder(rest.ErrorEncoder),
-				engine.ServerErrorHandler(transport.NewLogErrorHandler(srv.logger)),
+			options = append(options, []rest.ServerOption{
+				rest.ServerErrorEncoder(rest.JsonErrorEncoder),
+				rest.ServerErrorHandler(rest.NewLogErrorHandler(srv.logger)),
 			}...)
 		}
 	} else {
-		options = append(options, []engine.ServerOption{
-			engine.ServerErrorEncoder(rest.ErrorEncoder),
-			engine.ServerErrorHandler(transport.NewLogErrorHandler(srv.logger)),
+		options = append(options, []rest.ServerOption{
+			rest.ServerErrorEncoder(rest.JsonErrorEncoder),
+			rest.ServerErrorHandler(rest.NewLogErrorHandler(srv.logger)),
 		}...)
 	}
-	var before []engine.RequestFunc
+
+	var before []rest.RequestFunc
 
 	for _, f := range r.Before() {
-		before = append(before, func(ctx context.Context, req *http.Request, w http.ResponseWriter) context.Context {
-			r.Mcontext().Request = req
-			f(r.Mcontext(), w)
-			return ctx
-		})
+		before = append(before, rest.RequestFunc(f))
 	}
 
-	options = append(options, engine.ServerBefore(before...))
+	options = append(options, rest.ServerBefore(before...))
 
-	var after []engine.ServerResponseFunc
+	var after []rest.ServerResponseFunc
 	for _, f := range r.After() {
-		after = append(after, func(ctx context.Context, w http.ResponseWriter) context.Context {
-			f(r.Mcontext(), w)
-			return ctx
-		})
+		after = append(after, rest.ServerResponseFunc(f) )
 	}
-	options = append(options, engine.ServerAfter(after...))
+	options = append(options, rest.ServerAfter(after...))
 
-	handler := engine.NewEngine(
+	handler := rest.NewEngine(
 		svc,
 		r.DecodeRequest,
 		r.EncodeResponse,
@@ -616,37 +606,36 @@ func (srv *MicroService) NewHandlerFunc(withTracer bool, path string, handlerFun
 			svc = middlewares[i].GetMiddleware()(middlewares[i].Object)(svc)
 		}
 
+		var options []rest.ServerOption
+
 		var zipkinTracer *zipk.Tracer
-
-		var options []engine.ServerOption
-
 		if srv.tracer != nil {
 			zipkinTracer = srv.tracer.GetZipkinTracer()
 			if srv.tracer.GetOpenTracer() != nil && withTracer {
-				svc = opentracing.TraceServer(srv.tracer.GetOpenTracer(), path)(svc)
-				options = append(options, engine.ServerBefore(trace.HTTPToContext(srv.tracer.GetOpenTracer(), path, srv.logger)))
+				svc = trace.TraceServer(srv.tracer.GetOpenTracer(), path)(svc)
+				options = append(options, rest.ServerBefore(opentrace.HTTPToContext(srv.tracer.GetOpenTracer(), path, srv.logger)))
 			}
 		}
 
 		if zipkinTracer != nil {
 			zipkinServer := zipkin.HTTPServerTrace(zipkinTracer)
 			if withTracer {
-				options = []engine.ServerOption{
-					engine.ServerErrorEncoder(rest.ErrorEncoder),
-					engine.ServerErrorHandler(transport.NewLogErrorHandler(srv.logger)),
+				options = append(options, []rest.ServerOption{
+					rest.ServerErrorEncoder(rest.JsonErrorEncoder),
+					rest.ServerErrorHandler(rest.NewLogErrorHandler(srv.logger)),
 					zipkinServer,
-				}
+				}...)
 			} else {
-				options = []engine.ServerOption{
-					engine.ServerErrorEncoder(rest.ErrorEncoder),
-					engine.ServerErrorHandler(transport.NewLogErrorHandler(srv.logger)),
-				}
+				options = append(options, []rest.ServerOption{
+					rest.ServerErrorEncoder(rest.JsonErrorEncoder),
+					rest.ServerErrorHandler(rest.NewLogErrorHandler(srv.logger)),
+				}...)
 			}
 		} else {
-			options = []engine.ServerOption{
-				engine.ServerErrorEncoder(rest.ErrorEncoder),
-				engine.ServerErrorHandler(transport.NewLogErrorHandler(srv.logger)),
-			}
+			options = append(options, []rest.ServerOption{
+				rest.ServerErrorEncoder(rest.JsonErrorEncoder),
+				rest.ServerErrorHandler(rest.NewLogErrorHandler(srv.logger)),
+			}...)
 		}
 
 		handlerFunc(w, req)

@@ -22,7 +22,7 @@ var (
 	// ErrMaxSizeExceeded protects the Concat method.
 	ErrMaxSizeExceeded = errors.New("result exceeds maximum size")
 )
-func ErrorEncoder(ctx context.Context, err error, w http.ResponseWriter) {
+func JsonErrorEncoder(ctx context.Context, err error, w http.ResponseWriter) {
 	code := http.StatusInternalServerError
 	msg := err.Error()
 
