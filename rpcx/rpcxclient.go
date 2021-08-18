@@ -23,11 +23,15 @@ func RpcCallWithConsul(basepath, consuladdr, serviceName, methodName string, sel
 		selectMode = int(client.RandomSelect)
 	}
 
-	client := client.NewXClient(serviceName, client.Failtry, client.SelectMode(selectMode), d, client.DefaultOption)
-	defer client.Close()
+	c := client.NewXClient(serviceName, client.Failtry, client.SelectMode(selectMode), d, client.DefaultOption)
+	defer c.Close()
+	p := &client.OpenTracingPlugin{}
+	pc := client.NewPluginContainer()
+	pc.Add(p)
+	c.SetPlugins(pc)
 
 	serviceMethod := methodName
-	err = client.Call(context.Background(), serviceMethod, req, ret)
+	err = c.Call(context.Background(), serviceMethod, req, ret)
 	if err != nil {
 		fmt.Printf("error for %s: %v \n", serviceMethod, err)
 	} else {

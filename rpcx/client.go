@@ -35,11 +35,11 @@ type Client struct {
 	Params      map[string]interface{}
 }
 
-var ClientPool map[string]*client.XClientPool
+var ClientPool map[string]*XClientPool
 var lock *sync.Mutex = &sync.Mutex{}
 
 func init() {
-	ClientPool = make(map[string]*client.XClientPool)
+	ClientPool = make(map[string]*XClientPool)
 }
 
 // NewClient constructs a usable Client for a single remote endpoint.
@@ -72,7 +72,7 @@ func NewClient(
 // NewClient constructs a usable Client for a single remote endpoint.
 // Pass an zero-value protobuf message of the RPC response type as
 // the rpcxReply argument.
-func NewClientPool(size int, sdtype, sdaddr, basepath, serviceName string, failMode client.FailMode, selectMode client.SelectMode, params map[string]interface{}) *client.XClientPool {
+func NewClientPool(size int, sdtype, sdaddr, basepath, serviceName string, failMode client.FailMode, selectMode client.SelectMode, params map[string]interface{}) *XClientPool {
 
 	defer func() {
 		if e := recover(); e != nil {
@@ -103,13 +103,13 @@ func NewClientPool(size int, sdtype, sdaddr, basepath, serviceName string, failM
 		fmt.Errorf("cannot discovery service: %v", err)
 		return nil
 	}
-	xclient := client.NewXClientPool(size, serviceName, failMode, selectMode, cs, client.DefaultOption)
+	xc := NewXClientPool(size,serviceName, failMode, selectMode, cs, client.DefaultOption)
 
-	ClientPool[serviceName] = xclient
-	return xclient
+	ClientPool[serviceName] = xc
+	return xc
 }
 
-func GetRpcClientPool(serviceName string) *client.XClientPool {
+func GetRpcClientPool(serviceName string) *XClientPool {
 	return ClientPool[serviceName]
 }
 
@@ -181,7 +181,7 @@ func (c *Client) Close() error {
 	return nil
 }
 
-func (c *Client) GetClientPool() *client.XClientPool {
+func (c *Client) GetClientPool() *XClientPool {
 
 	if pc, ok := ClientPool[c.serviceName]; ok {
 		return pc
