@@ -9,7 +9,6 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/go-kit/kit/metrics"
 	"github.com/libra9z/httprouter"
 )
 
@@ -43,9 +42,6 @@ func (c AftersChain) Last() MskitFunc {
 type RestApi struct {
 	Request   *http.Request
 	Router    *httprouter.Router
-	Counter   metrics.Counter
-	Gauge     metrics.Gauge
-	Histogram metrics.Histogram
 	after 		AftersChain
 	before 		BeforesChain
 	mc 			*Mcontext
