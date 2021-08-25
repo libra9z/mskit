@@ -51,6 +51,7 @@ type Mcontext struct {
 	ContentType  int
 	Ctx 		 context.Context
 	Userid       string //admin user prefix with 'a' ,user table prefix with 'u'
+	Custid       string //客户标识，对应orgid
 	Tracer       trace.Tracer
 	AuthedOrgids []int64
 	params       *httprouter.Params
@@ -98,52 +99,6 @@ func NewContext() *Mcontext {
 	}
 }
 
-// func (r *Request) GetString(key string) []string {
-// 	var ret []string
-// 	for k, v := range r.Queries {
-// 		if k == key {
-// 			ret = v.([]string)
-// 			break
-// 		}
-// 	}
-
-// 	return ret
-// }
-// func (r *Request) GetInt(key string) []int {
-// 	var ret []int
-
-// 	for k, v := range r.Queries {
-// 		if k == key {
-// 			s := v.([]string)
-
-// 			for _, si := range s {
-// 				iv, _ := strconv.ParseInt(si, 10, 64)
-// 				ret = append(ret, int(iv))
-// 			}
-
-// 			break
-// 		}
-// 	}
-// 	return ret
-// }
-
-// func (r *Request) GetInt64(key string) []int64 {
-// 	var ret []int64
-
-// 	for k, v := range r.Queries {
-// 		if k == key {
-// 			s := v.([]string)
-
-// 			for _, si := range s {
-// 				iv, _ := strconv.ParseInt(si, 10, 64)
-// 				ret = append(ret, iv)
-// 			}
-
-// 			break
-// 		}
-// 	}
-// 	return ret
-// }
 func (c *Mcontext) reset() {
 	c.Writer = &c.writermem
 	c.Params = c.Params[:0]
@@ -166,6 +121,13 @@ func (r *Mcontext) SetUserid(uid string) {
 
 func (r *Mcontext) GetUserid() string {
 	return r.Userid
+}
+func (r *Mcontext) SetCustid(uid string) {
+	r.Custid = uid
+}
+
+func (r *Mcontext) GetCustid() string {
+	return r.Custid
 }
 
 func (r *Mcontext) GetContentType() string {
