@@ -10,10 +10,13 @@ import (
 	"time"
 
 	"github.com/libra9z/mskit/log"
+	"github.com/libra9z/mskit/sd"
 	"github.com/libra9z/mskit/trace"
 	"github.com/opentracing/opentracing-go"
 	zipkin "github.com/openzipkin/zipkin-go"
 	metrics "github.com/rcrowley/go-metrics"
+	nacos "github.com/rpcxio/rpcx-nacos/serverplugin"
+	etcd "github.com/rpcxio/rpcx-etcd/serverplugin"
 	"github.com/smallnest/rpcx/server"
 	"github.com/smallnest/rpcx/serverplugin"
 )
@@ -364,23 +367,33 @@ func NewRpcxServer(options ...RpcxServerOptions) *RpcServer {
 		}
 		s.Server.Plugins.Add(p)
 
-		// case "nacos":
-		// 	clientConfig := sd.GetClientConfig(s.Params)
-		// 	sc := sd.GetServerConfig(s.SdAddress,s.Params)
-		// 	p := &serverplugin.NacosRegisterPlugin{
-		// 		ServiceAddress: s.Network + "@" + s.ServiceAddr,
-		// 		Cluster: s.ClusterName,
-		// 		ClientConfig: clientConfig,
-		// 		ServerConfig: sc,
-		// 	}
-		// 	if s.Params != nil && s.Params["tenant"] != nil {
-		// 		p.Tenant = utils.ConvertToString(s.Params["tenant"])
-		// 	}
-		// 	err := p.Start()
-		// 	if err != nil {
-		// 		s.logger.Log("error", err)
-		// 	}
-		// 	s.Server.Plugins.Add(p)
+	case "nacos":
+		clientConfig := sd.GetClientConfig(s.Params)
+		sc := sd.GetServerConfig(s.SdAddress, s.Params)
+		p := &nacos.NacosRegisterPlugin{
+			ServiceAddress: s.Network + "@" + s.ServiceAddr,
+			Cluster:        s.ClusterName,
+			ClientConfig:   clientConfig,
+			ServerConfig:   sc,
+		}
+		// if s.Params != nil && s.Params["tenant"] != nil {
+		// 	p.Tenant = utils.ConvertToString(s.Params["tenant"])
+		// }
+		err := p.Start()
+		if err != nil {
+			s.logger.Log("error", err)
+		}
+		s.Server.Plugins.Add(p)
+	case "etcd3":
+		p := &etcd.EtcdV3RegisterPlugin{
+			ServiceAddress: s.Network + "@" + s.ServiceAddr,
+			BasePath:       s.BasePath,
+		}
+		err := p.Start()
+		if err != nil {
+			s.logger.Log("error", err)
+		}
+		s.Server.Plugins.Add(p)
 	}
 
 	if s.tracer != nil {

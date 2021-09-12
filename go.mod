@@ -15,6 +15,8 @@ require (
 	github.com/opentracing/opentracing-go v1.2.0
 	github.com/openzipkin/zipkin-go v0.2.5
 	github.com/rcrowley/go-metrics v0.0.0-20201227073835-cf1acfcdf475
+	github.com/rpcxio/rpcx-etcd v0.0.0-20210907081219-a9e31da236e8
+	github.com/rpcxio/rpcx-nacos v0.0.0-20210525063414-e99e0c81ae30
 	github.com/smallnest/rpcx v1.6.9
 	github.com/stretchr/testify v1.7.0
 	github.com/ugorji/go/codec v1.2.6

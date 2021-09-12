@@ -8,8 +8,11 @@ import (
 	"sync"
 
 	_const "github.com/libra9z/mskit/const"
+	"github.com/libra9z/mskit/sd"
+	"github.com/libra9z/utils"
 	"github.com/smallnest/rpcx/share"
-
+	nacos "github.com/rpcxio/rpcx-nacos/client"
+	etcd "github.com/rpcxio/rpcx-etcd/client"
 	"github.com/smallnest/rpcx/client"
 
 	"github.com/go-kit/kit/endpoint"
@@ -93,17 +96,20 @@ func NewClientPool(size int, sdtype, sdaddr, basepath, serviceName string, failM
 	case "zookeeper":
 		ss := strings.Split(sdaddr, _const.ADDR_SPLIT_STRING)
 		cs, err = client.NewZookeeperDiscovery(basepath, serviceName, ss, nil)
-		// case "dns":
-		// 	clientConfig := sd.GetClientConfig(params)
-		// 	sc := sd.GetServerConfig(sdaddr, params)
-		// 	clustername := utils.ConvertToString(params["cluster_name"])
-		// 	cs, err = client.NewDNSDiscovery(serviceName, clustername, clientConfig, sc)
+	case "nacos":
+		clientConfig := sd.GetClientConfig(params)
+		sc := sd.GetServerConfig(sdaddr, params)
+		clustername := utils.ConvertToString(params["cluster_name"])
+		cs, err = nacos.NewNacosDiscovery(serviceName, clustername, clientConfig, sc)
+	case "etcd3":
+		ss := strings.Split(sdaddr, _const.ADDR_SPLIT_STRING)
+		cs, err = etcd.NewEtcdV3Discovery(basepath, serviceName, ss, true, nil)
 	}
 	if err != nil {
 		fmt.Errorf("cannot discovery service: %v", err)
 		return nil
 	}
-	xc := NewXClientPool(size,serviceName, failMode, selectMode, cs, client.DefaultOption)
+	xc := NewXClientPool(size, serviceName, failMode, selectMode, cs, client.DefaultOption)
 
 	ClientPool[serviceName] = xc
 	return xc
