@@ -524,19 +524,16 @@ func (srv *MicroService) NewHttpHandler(withTracer bool, path string, r rest.Res
 		zipkinServer := zipkin.HTTPServerTrace(zipkinTracer)
 		if withTracer {
 			options = append(options, []rest.ServerOption{
-				rest.ServerErrorEncoder(rest.JsonErrorEncoder),
 				rest.ServerErrorHandler(rest.NewLogErrorHandler(srv.logger)),
 				zipkinServer,
 			}...)
 		} else {
 			options = append(options, []rest.ServerOption{
-				rest.ServerErrorEncoder(rest.JsonErrorEncoder),
 				rest.ServerErrorHandler(rest.NewLogErrorHandler(srv.logger)),
 			}...)
 		}
 	} else {
 		options = append(options, []rest.ServerOption{
-			rest.ServerErrorEncoder(rest.JsonErrorEncoder),
 			rest.ServerErrorHandler(rest.NewLogErrorHandler(srv.logger)),
 		}...)
 	}
@@ -621,19 +618,19 @@ func (srv *MicroService) NewHandlerFunc(withTracer bool, path string, handlerFun
 			zipkinServer := zipkin.HTTPServerTrace(zipkinTracer)
 			if withTracer {
 				options = append(options, []rest.ServerOption{
-					rest.ServerErrorEncoder(rest.JsonErrorEncoder),
+					//rest.ServerErrorEncoder(rest.JsonErrorEncoder),
 					rest.ServerErrorHandler(rest.NewLogErrorHandler(srv.logger)),
 					zipkinServer,
 				}...)
 			} else {
 				options = append(options, []rest.ServerOption{
-					rest.ServerErrorEncoder(rest.JsonErrorEncoder),
+					//rest.ServerErrorEncoder(rest.JsonErrorEncoder),
 					rest.ServerErrorHandler(rest.NewLogErrorHandler(srv.logger)),
 				}...)
 			}
 		} else {
 			options = append(options, []rest.ServerOption{
-				rest.ServerErrorEncoder(rest.JsonErrorEncoder),
+				//rest.ServerErrorEncoder(rest.JsonErrorEncoder),
 				rest.ServerErrorHandler(rest.NewLogErrorHandler(srv.logger)),
 			}...)
 		}
