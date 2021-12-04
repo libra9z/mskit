@@ -105,7 +105,7 @@ func (s Engine) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		w = iw
 	}
 
-	request, err := s.dec(ctx, r,w)
+	request, err := s.dec(ctx, r, w)
 	if err != nil {
 		s.errorHandler.Handle(ctx, err)
 		s.errorEncoder(ctx, err, w)
@@ -113,7 +113,7 @@ func (s Engine) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	for _, f := range s.before {
-		f(request.(*Mcontext),w)
+		f(request.(*Mcontext), w)
 	}
 
 	response, err := s.e(ctx, request)
@@ -200,11 +200,11 @@ func DefaultErrorEncoder(_ context.Context, err error, w http.ResponseWriter) {
 			}
 		}
 	}
-	code := http.StatusInternalServerError
-	if sc, ok := err.(StatusCoder); ok {
-		code = sc.StatusCode()
-	}
-	w.WriteHeader(code)
+	//code := http.StatusInternalServerError
+	//if sc, ok := err.(StatusCoder); ok {
+	//	code = sc.StatusCode()
+	//}
+	//w.WriteHeader(code)
 	w.Write(body)
 }
 
