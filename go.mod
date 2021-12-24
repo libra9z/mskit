@@ -1,4 +1,4 @@
-module github.com/libra9z/mskit
+module github.com/libra9z/mskit/v4
 
 go 1.16
 
