@@ -4,7 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/libra9z/mskit/render"
+	"github.com/libra9z/mskit/v4/render"
 	"io"
 	"io/ioutil"
 	"math"
@@ -15,9 +15,9 @@ import (
 	"time"
 
 	"github.com/libra9z/httprouter"
-	"github.com/libra9z/mskit/binding"
-	me "github.com/libra9z/mskit/error"
-	"github.com/libra9z/mskit/trace"
+	"github.com/libra9z/mskit/v4/binding"
+	me "github.com/libra9z/mskit/v4/error"
+	"github.com/libra9z/mskit/v4/trace"
 )
 
 // Content-Type MIME of the most common data formats.

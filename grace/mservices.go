@@ -20,12 +20,12 @@ import (
 	"time"
 
 	"github.com/libra9z/httprouter"
-	"github.com/libra9z/mskit/endpoint"
-	"github.com/libra9z/mskit/log"
-	"github.com/libra9z/mskit/rest"
-	"github.com/libra9z/mskit/rest/opentrace"
-	"github.com/libra9z/mskit/rest/zipkin"
-	"github.com/libra9z/mskit/trace"
+	"github.com/libra9z/mskit/v4/endpoint"
+	"github.com/libra9z/mskit/v4/log"
+	"github.com/libra9z/mskit/v4/rest"
+	"github.com/libra9z/mskit/v4/rest/opentrace"
+	"github.com/libra9z/mskit/v4/rest/zipkin"
+	"github.com/libra9z/mskit/v4/trace"
 )
 
 // App defines msrest application with a new PatternServeMux.

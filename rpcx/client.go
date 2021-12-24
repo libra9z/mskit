@@ -7,8 +7,8 @@ import (
 	"strings"
 	"sync"
 
-	_const "github.com/libra9z/mskit/const"
-	"github.com/libra9z/mskit/sd"
+	_const "github.com/libra9z/mskit/v4/const"
+	"github.com/libra9z/mskit/v4/sd"
 	"github.com/libra9z/utils"
 	"github.com/smallnest/rpcx/share"
 	nacos "github.com/rpcxio/rpcx-nacos/client"

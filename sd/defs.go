@@ -2,7 +2,7 @@ package sd
 
 import (
 	"github.com/hashicorp/consul/api"
-	"github.com/libra9z/mskit/grace"
+	"github.com/libra9z/mskit/v4/grace"
 	"github.com/libra9z/utils"
 )
 

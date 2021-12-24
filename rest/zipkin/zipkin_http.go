@@ -3,8 +3,8 @@ package zipkin
 import (
 	"context"
 	"github.com/go-kit/kit/log"
-	"github.com/libra9z/mskit/trace"
-	"github.com/libra9z/mskit/rest"
+	"github.com/libra9z/mskit/v4/trace"
+	"github.com/libra9z/mskit/v4/rest"
 	"github.com/openzipkin/zipkin-go"
 	"github.com/openzipkin/zipkin-go/model"
 	"github.com/openzipkin/zipkin-go/propagation/b3"
