@@ -5,7 +5,7 @@ import (
 	"reflect"
 	"strings"
 
-	"github.com/libra9z/mskit/internal/json"
+	"github.com/libra9z/mskit/v4/internal/json"
 )
 
 // ErrorType is an unsigned 64-bit error code as defined in the gin spec.

@@ -8,7 +8,7 @@ import (
 	otext "github.com/opentracing/opentracing-go/ext"
 	otlog "github.com/opentracing/opentracing-go/log"
 
-	"github.com/libra9z/mskit/endpoint"
+	"github.com/libra9z/mskit/v4/endpoint"
 	"github.com/go-kit/kit/sd/lb"
 )
 
