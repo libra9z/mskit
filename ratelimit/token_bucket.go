@@ -4,7 +4,7 @@ import (
 	"context"
 	"errors"
 
-	"github.com/libra9z/mskit/endpoint"
+	"github.com/libra9z/mskit/v4/endpoint"
 )
 
 // ErrLimited is returned in the request path when the rate limiter is

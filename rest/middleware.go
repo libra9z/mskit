@@ -1,6 +1,6 @@
 package rest
 
-import "github.com/libra9z/mskit/endpoint"
+import "github.com/libra9z/mskit/v4/endpoint"
 
 type Middleware func(endpoint.Endpoint) endpoint.Endpoint
 

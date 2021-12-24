@@ -12,8 +12,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/libra9z/mskit/internal/bytesconv"
-	"github.com/libra9z/mskit/internal/json"
+	"github.com/libra9z/mskit/v4/internal/bytesconv"
+	"github.com/libra9z/mskit/v4/internal/json"
 )
 
 var (

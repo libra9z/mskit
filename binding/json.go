@@ -10,7 +10,7 @@ import (
 	"io"
 	"net/http"
 
-	"github.com/libra9z/mskit/internal/json"
+	"github.com/libra9z/mskit/v4/internal/json"
 )
 
 // EnableDecoderUseNumber is used to call the UseNumber method on the JSON

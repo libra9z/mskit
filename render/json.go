@@ -10,8 +10,8 @@ import (
 	"html/template"
 	"net/http"
 
-	"github.com/libra9z/mskit/internal/bytesconv"
-	"github.com/libra9z/mskit/internal/json"
+	"github.com/libra9z/mskit/v4/internal/bytesconv"
+	"github.com/libra9z/mskit/v4/internal/json"
 )
 
 // JSON contains the given interface object.

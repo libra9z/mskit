@@ -4,7 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"github.com/go-kit/kit/log"
-	"github.com/libra9z/mskit/endpoint"
+	"github.com/libra9z/mskit/v4/endpoint"
 	"net/http"
 )
 

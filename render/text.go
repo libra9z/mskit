@@ -8,7 +8,7 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/libra9z/mskit/internal/bytesconv"
+	"github.com/libra9z/mskit/v4/internal/bytesconv"
 )
 
 // String contains the given interface object slice and its format.

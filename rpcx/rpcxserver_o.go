@@ -4,7 +4,7 @@ import (
 	"github.com/smallnest/rpcx/server"
 	"github.com/smallnest/rpcx/serverplugin"
 	metrics "github.com/rcrowley/go-metrics"
-	"github.com/libra9z/mskit/log"
+	"github.com/libra9z/mskit/v4/log"
 	"strings"
 	"time"
 )

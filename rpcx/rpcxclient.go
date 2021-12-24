@@ -6,7 +6,7 @@ import (
 	"reflect"
 	"strings"
 
-	"github.com/libra9z/mskit/trace"
+	"github.com/libra9z/mskit/v4/trace"
 	"github.com/smallnest/rpcx/client"
 )
 
