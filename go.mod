@@ -20,6 +20,6 @@ require (
 	github.com/smallnest/rpcx v1.6.9
 	github.com/stretchr/testify v1.7.0
 	github.com/ugorji/go/codec v1.2.6
-	google.golang.org/grpc/examples v0.0.0-20210812181202-a42567fe92f0 // indirect
+	google.golang.org/grpc/examples v0.0.0-20211203232506-512e89474bfb // indirect
 	gopkg.in/yaml.v2 v2.4.0
 )
