@@ -15,8 +15,8 @@ import (
 	"github.com/opentracing/opentracing-go"
 	zipkin "github.com/openzipkin/zipkin-go"
 	metrics "github.com/rcrowley/go-metrics"
-	nacos "github.com/rpcxio/rpcx-nacos/serverplugin"
 	etcd "github.com/rpcxio/rpcx-etcd/serverplugin"
+	nacos "github.com/rpcxio/rpcx-nacos/serverplugin"
 	"github.com/smallnest/rpcx/server"
 	"github.com/smallnest/rpcx/serverplugin"
 )
@@ -397,8 +397,8 @@ func NewRpcxServer(options ...RpcxServerOptions) *RpcServer {
 	}
 
 	if s.tracer != nil {
-		zkp := serverplugin.OpenTracingPlugin{}
-		s.Server.Plugins.Add(zkp)
+		//zkp := serverplugin.OpenTracingPlugin{}
+		//s.Server.Plugins.Add(zkp)
 	}
 	return s
 }

@@ -40,9 +40,9 @@ func NewXClientPool(count int, servicePath string, failMode client.FailMode, sel
 	for i := 0; i < count; i++ {
 		xclient := client.NewXClient(servicePath, failMode, selectMode, discovery, option)
 
-		p := &client.OpenTracingPlugin{}
+		//p := &client.OpenTracingPlugin{}
 		pc := client.NewPluginContainer()
-		pc.Add(p)
+		//pc.Add(p)
 		xclient.SetPlugins(pc)
 		pool.xclients[i] = xclient
 	}
@@ -64,9 +64,9 @@ func NewBidirectionalXClientPool(count int, servicePath string, failMode client.
 
 	for i := 0; i < count; i++ {
 		xclient := client.NewBidirectionalXClient(servicePath, failMode, selectMode, discovery, option, serverMessageChan)
-		p := &client.OpenTracingPlugin{}
+		//p := &client.OpenTracingPlugin{}
 		pc := client.NewPluginContainer()
-		pc.Add(p)
+		//pc.Add(p)
 		xclient.SetPlugins(pc)
 		pool.xclients[i] = xclient
 	}

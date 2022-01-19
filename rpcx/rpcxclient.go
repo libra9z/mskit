@@ -25,9 +25,9 @@ func RpcCallWithConsul(basepath, consuladdr, serviceName, methodName string, sel
 
 	c := client.NewXClient(serviceName, client.Failtry, client.SelectMode(selectMode), d, client.DefaultOption)
 	defer c.Close()
-	p := &client.OpenTracingPlugin{}
+	//p := &client.OpenTracingPlugin{}
 	pc := client.NewPluginContainer()
-	pc.Add(p)
+	//pc.Add(p)
 	c.SetPlugins(pc)
 
 	serviceMethod := methodName

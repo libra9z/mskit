@@ -10,10 +10,10 @@ import (
 	_const "github.com/libra9z/mskit/v4/const"
 	"github.com/libra9z/mskit/v4/sd"
 	"github.com/libra9z/utils"
-	"github.com/smallnest/rpcx/share"
-	nacos "github.com/rpcxio/rpcx-nacos/client"
 	etcd "github.com/rpcxio/rpcx-etcd/client"
+	nacos "github.com/rpcxio/rpcx-nacos/client"
 	"github.com/smallnest/rpcx/client"
+	"github.com/smallnest/rpcx/share"
 
 	"github.com/go-kit/kit/endpoint"
 )
@@ -100,7 +100,8 @@ func NewClientPool(size int, sdtype, sdaddr, basepath, serviceName string, failM
 		clientConfig := sd.GetClientConfig(params)
 		sc := sd.GetServerConfig(sdaddr, params)
 		clustername := utils.ConvertToString(params["cluster_name"])
-		cs, err = nacos.NewNacosDiscovery(serviceName, clustername, clientConfig, sc)
+		groupname := utils.ConvertToString(params["group_name"])
+		cs, err = nacos.NewNacosDiscovery(serviceName, clustername, groupname,clientConfig, sc)
 	case "etcd3":
 		ss := strings.Split(sdaddr, _const.ADDR_SPLIT_STRING)
 		cs, err = etcd.NewEtcdV3Discovery(basepath, serviceName, ss, true, nil)
