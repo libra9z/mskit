@@ -1,6 +1,7 @@
 package sd
 
 import (
+	"bytes"
 	"github.com/hashicorp/consul/api"
 	"github.com/libra9z/mskit/v4/grace"
 	"github.com/libra9z/utils"
@@ -12,6 +13,20 @@ const (
 	SERVICE_SCHEME_RPCX  = "rpcx"
 	SERVICE_SCHEME_TCP  = "tcp"
 )
+
+const(
+	SD_TYPE_CONSUL 	= "consul"
+	SD_TYPE_NACOS 	= "nacos"
+)
+
+
+type Registar interface {
+	Register(app *grace.MicroService,schema string)
+	RegisterFile(app *grace.MicroService,schema string,fname string,callbacks ...ServiceCallback)
+	RegisterWithConf(app *grace.MicroService,schema string,fname string, callbacks ...ServiceCallback)
+	RegisterFromMemory(app *grace.MicroService,schema string,buf *bytes.Buffer, exparams map[string]interface{},callbacks ...ServiceCallback)
+	Deregister()
+}
 
 type ServiceCallback func(app *grace.MicroService, params map[string]interface{}) error
 

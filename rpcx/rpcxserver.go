@@ -12,13 +12,12 @@ import (
 	"github.com/libra9z/mskit/v4/log"
 	"github.com/libra9z/mskit/v4/sd"
 	"github.com/libra9z/mskit/v4/trace"
-	"github.com/opentracing/opentracing-go"
-	zipkin "github.com/openzipkin/zipkin-go"
 	metrics "github.com/rcrowley/go-metrics"
 	etcd "github.com/rpcxio/rpcx-etcd/serverplugin"
 	nacos "github.com/rpcxio/rpcx-nacos/serverplugin"
 	"github.com/smallnest/rpcx/server"
 	"github.com/smallnest/rpcx/serverplugin"
+	otrace "go.opentelemetry.io/otel/trace"
 )
 
 const (
@@ -44,8 +43,6 @@ type RpcServer struct {
 	Methods map[string]Method
 
 	Params map[string]interface{}
-	//zipkinTracer 		*zipkin.Tracer
-	//tracer 		opentracing.Tracer
 	tracer trace.Tracer
 }
 
@@ -127,14 +124,6 @@ func RpcGetMethodWithTracer(name string) (Method, trace.Tracer) {
 	return nil, nil
 }
 
-func RpcGetMethodWithZipkinTracer(name string) (Method, *zipkin.Tracer) {
-
-	if defautlServer != nil {
-		return defautlServer.GetMethodByName(name), defautlServer.tracer.GetZipkinTracer()
-	}
-
-	return nil, nil
-}
 
 func RpcServe() {
 
@@ -318,9 +307,6 @@ func NewRpcxServer(options ...RpcxServerOptions) *RpcServer {
 	if s.GroupName == "" {
 		s.GroupName = "rpcx"
 	}
-	if s.tracer != nil {
-		opentracing.SetGlobalTracer(s.tracer.GetOpenTracer())
-	}
 	msg := fmt.Sprintf("%s registering... ", s.SdType)
 	s.logger.Log("info", msg)
 
@@ -398,7 +384,11 @@ func NewRpcxServer(options ...RpcxServerOptions) *RpcServer {
 
 	if s.tracer != nil {
 		//zkp := serverplugin.OpenTracingPlugin{}
-		//s.Server.Plugins.Add(zkp)
+		tt,tracer := s.tracer.GetTracer()
+		if tt == trace.TRACER_TYPE_OPENTELEMETRY {
+			zkp :=serverplugin.NewOpenTelemetryPlugin(tracer.(otrace.Tracer),nil)
+			s.Server.Plugins.Add(zkp)
+		}
 	}
 	return s
 }

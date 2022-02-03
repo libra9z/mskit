@@ -6,7 +6,6 @@ import (
 	"crypto/x509"
 	"errors"
 	"fmt"
-	zipk "github.com/openzipkin/zipkin-go"
 	"io/ioutil"
 	"net"
 	"net/http"
@@ -23,8 +22,6 @@ import (
 	"github.com/libra9z/mskit/v4/endpoint"
 	"github.com/libra9z/mskit/v4/log"
 	"github.com/libra9z/mskit/v4/rest"
-	"github.com/libra9z/mskit/v4/rest/opentrace"
-	"github.com/libra9z/mskit/v4/rest/zipkin"
 	"github.com/libra9z/mskit/v4/trace"
 )
 
@@ -430,11 +427,10 @@ func (srv *MicroService) NewRestEndpoint(svc rest.RestService) endpoint.Endpoint
 	return func(ctx context.Context, request interface{}) (interface{}, error) {
 
 		if request == nil {
-			return nil, errors.New("no request avaliable.")
+			return nil, errors.New("no request available")
 		}
 
 		req := request.(*rest.Mcontext)
-		req.Tracer = srv.tracer
 
 		var ret interface{}
 		var err error
@@ -469,11 +465,10 @@ func (srv *MicroService) NewEndpoint() endpoint.Endpoint {
 	return func(ctx context.Context, request interface{}) (interface{}, error) {
 
 		if request == nil {
-			return nil, errors.New("no request avaliable.")
+			return nil, errors.New("no request available")
 		}
 
 		req := request.(*rest.Mcontext)
-		req.Tracer = srv.tracer
 
 		return req, nil
 	}
@@ -511,21 +506,11 @@ func (srv *MicroService) NewHttpHandler(withTracer bool, path string, r rest.Res
 
 	var options []rest.ServerOption
 
-	var zipkinTracer *zipk.Tracer
 	if srv.tracer != nil {
-		zipkinTracer = srv.tracer.GetZipkinTracer()
-		if srv.tracer.GetOpenTracer() != nil && withTracer {
-			svc = trace.TraceServer(srv.tracer.GetOpenTracer(), path)(svc)
-			options = append(options, rest.ServerBefore(opentrace.HTTPToContext(srv.tracer.GetOpenTracer(), path, srv.logger)))
-		}
-	}
-
-	if zipkinTracer != nil {
-		zipkinServer := zipkin.HTTPServerTrace(zipkinTracer)
 		if withTracer {
 			options = append(options, []rest.ServerOption{
 				rest.ServerErrorHandler(rest.NewLogErrorHandler(srv.logger)),
-				zipkinServer,
+				srv.tracer.HTTPServerTrace(path),
 			}...)
 		} else {
 			options = append(options, []rest.ServerOption{
@@ -588,9 +573,10 @@ func (srv *MicroService) HandlerFunc(method, path string, handlerFunc http.Handl
 	srv.SetLogger(logger)
 
 	//handler := srv.NewHandlerFunc(false, path, rest, middlewares...)
-	handler := srv.NewHandlerFunc(false, path, handlerFunc, middlewares...)
+	handler := srv.NewHandlerFunc(true, path, handlerFunc, middlewares...)
 
-	srv.Router.HandlerFunc(method, path, handler)
+	srv.Router.Handler(method, path, handler)
+	//srv.Router.HandlerFunc(method, path, handler)
 }
 
 func (srv *MicroService) NewHandlerFunc(withTracer bool, path string, handlerFunc http.HandlerFunc, middlewares ...rest.RestMiddleware) http.HandlerFunc {
@@ -605,37 +591,47 @@ func (srv *MicroService) NewHandlerFunc(withTracer bool, path string, handlerFun
 
 		var options []rest.ServerOption
 
-		var zipkinTracer *zipk.Tracer
 		if srv.tracer != nil {
-			zipkinTracer = srv.tracer.GetZipkinTracer()
-			if srv.tracer.GetOpenTracer() != nil && withTracer {
-				svc = trace.TraceServer(srv.tracer.GetOpenTracer(), path)(svc)
-				options = append(options, rest.ServerBefore(opentrace.HTTPToContext(srv.tracer.GetOpenTracer(), path, srv.logger)))
-			}
-		}
-
-		if zipkinTracer != nil {
-			zipkinServer := zipkin.HTTPServerTrace(zipkinTracer)
 			if withTracer {
 				options = append(options, []rest.ServerOption{
-					//rest.ServerErrorEncoder(rest.JsonErrorEncoder),
 					rest.ServerErrorHandler(rest.NewLogErrorHandler(srv.logger)),
-					zipkinServer,
+					srv.tracer.HTTPServerTrace(path),
 				}...)
 			} else {
 				options = append(options, []rest.ServerOption{
-					//rest.ServerErrorEncoder(rest.JsonErrorEncoder),
 					rest.ServerErrorHandler(rest.NewLogErrorHandler(srv.logger)),
 				}...)
 			}
 		} else {
 			options = append(options, []rest.ServerOption{
-				//rest.ServerErrorEncoder(rest.JsonErrorEncoder),
 				rest.ServerErrorHandler(rest.NewLogErrorHandler(srv.logger)),
 			}...)
 		}
 
-		handlerFunc(w, req)
+		//h:= func() rest.Middleware{
+		//	return func(next endpoint.Endpoint) endpoint.Endpoint {
+		//		return func(ctx context.Context, request interface{}) (interface{}, error) {
+		//			if request == nil {
+		//				return nil, errors.New("no request available")
+		//			}
+		//
+		//			m := request.(*rest.Mcontext)
+		//			handlerFunc(w, req)
+		//			return next(ctx, m)
+		//		}
+		//	}
+		//}()
+		//svc = h(svc)
+		//
+		//handler := rest.NewEngine(
+		//	svc,
+		//	r.DecodeRequest,
+		//	rest.EncodeResponse,
+		//	options...,
+		//)
+		//
+		//handler.ServeHTTP(w,req)
+		handlerFunc(w,req)
 	}
 }
 

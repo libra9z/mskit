@@ -17,7 +17,6 @@ import (
 	"github.com/libra9z/httprouter"
 	"github.com/libra9z/mskit/v4/binding"
 	me "github.com/libra9z/mskit/v4/error"
-	"github.com/libra9z/mskit/v4/trace"
 )
 
 // Content-Type MIME of the most common data formats.
@@ -52,7 +51,6 @@ type Mcontext struct {
 	Ctx 		 context.Context
 	Userid       string //admin user prefix with 'a' ,user table prefix with 'u'
 	Custid       string //客户标识，对应orgid
-	Tracer       trace.Tracer
 	AuthedOrgids []int64
 	params       *httprouter.Params
 

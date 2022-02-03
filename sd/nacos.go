@@ -5,31 +5,60 @@ import (
 	"encoding/json"
 	"fmt"
 	_const "github.com/libra9z/mskit/v4/const"
+	"github.com/libra9z/mskit/v4/grace"
+	"github.com/libra9z/utils"
 	"github.com/nacos-group/nacos-sdk-go/clients"
+	"github.com/nacos-group/nacos-sdk-go/clients/naming_client"
 	"github.com/nacos-group/nacos-sdk-go/common/constant"
 	"github.com/nacos-group/nacos-sdk-go/vo"
+	"log"
 	"net"
 	"os"
-	"log"
 	"os/signal"
 	"reflect"
 	"strconv"
 	"strings"
-	"github.com/libra9z/mskit/v4/grace"
-	"github.com/libra9z/utils"
 )
 
-func NacosRegister(app *grace.MicroService, schema, name string, prefix string, addr, nacos, token string, callback ServiceCallback, params map[string]interface{}) {
+type nacosRegister struct {
+	servers 		string
+	token			string
+	prefix 			string
+	name 			string
+	callback 		ServiceCallback
+	params 			map[string]interface{}
+	iclient         naming_client.INamingClient
+	addr 			string		//listen on address and port
+}
 
-	if name == "" {
+
+var _ Registar = (*nacosRegister)(nil)
+
+func NewNacosRegistar( name string, prefix string, addr, nacos, token string, callback ServiceCallback, params map[string]interface{})(Registar,error){
+	n := &nacosRegister{
+		name: name,
+		prefix: prefix,
+		servers: nacos,
+		callback: callback,
+		token: token,
+		params: params,
+		addr: addr,
+	}
+	return n,nil
+}
+
+
+func (n *nacosRegister)Register(app *grace.MicroService,schema string) {
+
+	if n.name == "" {
 		log.Fatal("name empty")
 	}
-	if prefix == "" {
+	if n.prefix == "" {
 		log.Fatal("prefix empty")
 	}
 
 	//nacos address split
-	cs := strings.Split(nacos, _const.ADDR_SPLIT_STRING)
+	cs := strings.Split(n.servers, _const.ADDR_SPLIT_STRING)
 
 	if len(cs) <= 0 {
 		log.Fatal("no nacos address config")
@@ -39,12 +68,12 @@ func NacosRegister(app *grace.MicroService, schema, name string, prefix string, 
 	//nacos = cs[0]
 
 	var interval, timeout string
-	if params != nil {
-		if params["interval"] != nil {
-			interval = utils.ConvertToString(params["interval"])
+	if n.params != nil {
+		if n.params["interval"] != nil {
+			interval = utils.ConvertToString(n.params["interval"])
 		}
-		if params["timeout"] != nil {
-			timeout = utils.ConvertToString(params["timeout"])
+		if n.params["timeout"] != nil {
+			timeout = utils.ConvertToString(n.params["timeout"])
 		}
 	}
 
@@ -56,8 +85,8 @@ func NacosRegister(app *grace.MicroService, schema, name string, prefix string, 
 		timeout = "2s"
 	}
 
-	prefixes := strings.Split(prefix, ",")
-	host, portstr, err := net.SplitHostPort(addr)
+	prefixes := strings.Split(n.prefix, ",")
+	host, portstr, err := net.SplitHostPort(n.addr)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -66,8 +95,8 @@ func NacosRegister(app *grace.MicroService, schema, name string, prefix string, 
 		log.Fatal(err)
 	}
 	go func() {
-		log.Printf("Listening on %s serving %s", addr, prefix)
-		if err := callback(app, params); err != nil {
+		log.Printf("Listening on %s serving %s", n.addr, n.prefix)
+		if err := n.callback(app, n.params); err != nil {
 			log.Fatal(err)
 		}
 	}()
@@ -78,24 +107,24 @@ func NacosRegister(app *grace.MicroService, schema, name string, prefix string, 
 	}
 
 
-	clientConfig := GetClientConfig(params)
-	serverConfigs := GetServerConfig(nacos,params)
+	clientConfig := GetClientConfig(n.params)
+	serverConfigs := GetServerConfig(n.servers,n.params)
 
 	clusterName := ""
 	weight := 0.0
-	if params != nil && params["clustername"] != nil {
-		clusterName = utils.ConvertToString(params["clustername"])
+	if n.params != nil && n.params["clustername"] != nil {
+		clusterName = utils.ConvertToString(n.params["clustername"])
 	}
-	if params != nil && params["weight"] != nil {
-		weight = utils.Convert2Float64(params["weight"])
+	if n.params != nil && n.params["weight"] != nil {
+		weight = utils.Convert2Float64(n.params["weight"])
 	}
 
 	namingClient, err := clients.CreateNamingClient(map[string]interface{}{
 		"serverConfigs": serverConfigs,
 		"clientConfig":  clientConfig,
 	})
-
-	serviceID := name + "-" + addr
+	n.iclient = namingClient
+	serviceID := n.name + "-" + n.addr
 	success, _ := namingClient.RegisterInstance(vo.RegisterInstanceParam{
 		Ip:          host,
 		Port:        uint64(port),
@@ -115,16 +144,30 @@ func NacosRegister(app *grace.MicroService, schema, name string, prefix string, 
 	signal.Notify(quit, os.Interrupt, os.Kill)
 	<-quit
 
-	success, _ = namingClient.DeregisterInstance(vo.DeregisterInstanceParam{
+
+}
+
+func(n *nacosRegister)Deregister() {
+	serviceID := n.name + "-" + n.addr
+	host, portstr, err := net.SplitHostPort(n.addr)
+	if err != nil {
+		log.Fatal(err)
+	}
+	port, err := strconv.Atoi(portstr)
+	if err != nil {
+		log.Fatal(err)
+	}
+	success, _ := n.iclient.DeregisterInstance(vo.DeregisterInstanceParam{
 		Ip:          host,
 		Port:        uint64(port),
 		ServiceName: serviceID,
 		Ephemeral:   true,
 	})
 
-	log.Printf("Deregistered service %q in consul", name)
+	log.Printf("Deregistered service %q in consul %v", n.name,success)
 }
-func NacosRegisterFromMemory(app *grace.MicroService, schema string, buf *bytes.Buffer, nacos, token string,exparams map[string]interface{}, callbacks ...ServiceCallback) {
+
+func (n *nacosRegister)RegisterFromMemory(app *grace.MicroService,schema string,buf *bytes.Buffer,exparams map[string]interface{}, callbacks ...ServiceCallback) {
 
 	if buf == nil {
 		log.Fatal("内存中没有默认配置。" )
@@ -143,7 +186,7 @@ func NacosRegisterFromMemory(app *grace.MicroService, schema string, buf *bytes.
 	}
 
 	//nacos address split
-	cs := strings.Split(nacos, _const.ADDR_SPLIT_STRING)
+	cs := strings.Split(n.servers, _const.ADDR_SPLIT_STRING)
 
 	if len(cs) <= 0 {
 		log.Fatal("no consul address config")
@@ -184,7 +227,7 @@ func NacosRegisterFromMemory(app *grace.MicroService, schema string, buf *bytes.
 			}
 			for i, vs := range ps {
 				v := vs.(map[string]interface{})
-				go nacosRegisterService(app, schema, nacos, token, v, callbacks[i], cps)
+				go nacosRegisterService(app, schema, n.servers, n.token, v, callbacks[i], cps)
 			}
 
 			quit := make(chan os.Signal, 1)
@@ -198,7 +241,7 @@ func NacosRegisterFromMemory(app *grace.MicroService, schema string, buf *bytes.
 				return
 			}
 			params = p.(map[string]interface{})
-			nacosRegisterService(app, schema, nacos, token, params, callbacks[0], cps)
+			nacosRegisterService(app, schema, n.servers, n.token, params, callbacks[0], cps)
 		}
 	case "rpcx":
 		if data["rpcx"] != nil {
@@ -238,7 +281,7 @@ func NacosRegisterFromMemory(app *grace.MicroService, schema string, buf *bytes.
 			}
 			for i, vs := range ps {
 				v := vs.(map[string]interface{})
-				go nacosRegisterService(app, schema, nacos, token, v, callbacks[i], cps)
+				go nacosRegisterService(app, schema, n.servers, n.token, v, callbacks[i], cps)
 			}
 
 			quit := make(chan os.Signal, 1)
@@ -252,7 +295,7 @@ func NacosRegisterFromMemory(app *grace.MicroService, schema string, buf *bytes.
 				return
 			}
 			params = p.(map[string]interface{})
-			nacosRegisterService(app, schema, nacos, token, params, callbacks[0], cps)
+			nacosRegisterService(app, schema, n.servers, n.token, params, callbacks[0], cps)
 		}
 	default:
 		log.Fatal("没有配置参数。")
@@ -261,7 +304,7 @@ func NacosRegisterFromMemory(app *grace.MicroService, schema string, buf *bytes.
 
 }
 
-func NacosRegisterWithConf(app *grace.MicroService, schema string, fname string, nacos, token string, callbacks ...ServiceCallback) {
+func (n *nacosRegister)RegisterWithConf(app *grace.MicroService,schema string,fname string, callbacks ...ServiceCallback) {
 	if fname == "" {
 		log.Fatal("没有指定配置文件。\n")
 		return
@@ -271,11 +314,11 @@ func NacosRegisterWithConf(app *grace.MicroService, schema string, fname string,
 
 	buf := bytes.NewBuffer(body)
 
-	NacosRegisterFromMemory(app,schema,buf,nacos,token,nil,callbacks...)
+	n.RegisterFromMemory(app,schema,buf,nil,callbacks...)
 
 }
 
-func NacosRegisterFile(app *grace.MicroService, schema string, fname string, nacos, token string,params map[string]interface{}, callbacks ...ServiceCallback) {
+func (n *nacosRegister)RegisterFile(app *grace.MicroService,schema string,fname string, callbacks ...ServiceCallback) {
 	if fname == "" {
 		log.Fatal("没有指定配置文件。\n")
 		return
@@ -285,7 +328,7 @@ func NacosRegisterFile(app *grace.MicroService, schema string, fname string, nac
 
 	buf := bytes.NewBuffer(body)
 
-	NacosRegisterFromMemory(app,schema,buf,nacos,token,params,callbacks...)
+	n.RegisterFromMemory(app,schema,buf,nil,callbacks...)
 
 }
 
