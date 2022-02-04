@@ -121,7 +121,7 @@ func NewConsulRegistar(name string, prefix string, addr, consul, token string, c
 
 	return c,nil
 }
-func (c *consulRegister)Register(app *grace.MicroService,schema string) {
+func (c *consulRegister)Register(app *grace.MicroService,schema string,address string,params map[string]interface{},callbacks ...ServiceCallback) {
 
 	if c.name == "" {
 		log.Fatal("name empty")
@@ -137,8 +137,12 @@ func (c *consulRegister)Register(app *grace.MicroService,schema string) {
 		log.Fatal("no consul address config")
 		return
 	}
-
+	c.params = params
+	if len(callbacks)>0 {
+		c.callback = callbacks[0]
+	}
 	c.servers = cs[0]
+	c.addr = address
 
 	var interval, timeout string
 	if c.params != nil {

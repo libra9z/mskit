@@ -48,7 +48,7 @@ func NewNacosRegistar( name string, prefix string, addr, nacos, token string, ca
 }
 
 
-func (n *nacosRegister)Register(app *grace.MicroService,schema string) {
+func (n *nacosRegister)Register(app *grace.MicroService,schema string,address string,params map[string]interface{},callbacks ...ServiceCallback) {
 
 	if n.name == "" {
 		log.Fatal("name empty")
@@ -64,6 +64,12 @@ func (n *nacosRegister)Register(app *grace.MicroService,schema string) {
 		log.Fatal("no nacos address config")
 		return
 	}
+
+	n.params = params
+	if len(callbacks)>0 {
+		n.callback = callbacks[0]
+	}
+	n.addr = address
 
 	//nacos = cs[0]
 
@@ -86,7 +92,7 @@ func (n *nacosRegister)Register(app *grace.MicroService,schema string) {
 	}
 
 	prefixes := strings.Split(n.prefix, ",")
-	host, portstr, err := net.SplitHostPort(n.addr)
+	host, portstr, err := net.SplitHostPort(address)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -95,7 +101,7 @@ func (n *nacosRegister)Register(app *grace.MicroService,schema string) {
 		log.Fatal(err)
 	}
 	go func() {
-		log.Printf("Listening on %s serving %s", n.addr, n.prefix)
+		log.Printf("Listening on %s serving %s", address, n.prefix)
 		if err := n.callback(app, n.params); err != nil {
 			log.Fatal(err)
 		}

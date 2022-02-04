@@ -21,7 +21,7 @@ const(
 
 
 type Registar interface {
-	Register(app *grace.MicroService,schema string)
+	Register(app *grace.MicroService,schema string,address string,params map[string]interface{},callbacks ...ServiceCallback)
 	RegisterFile(app *grace.MicroService,schema string,fname string,callbacks ...ServiceCallback)
 	RegisterWithConf(app *grace.MicroService,schema string,fname string, callbacks ...ServiceCallback)
 	RegisterFromMemory(app *grace.MicroService,schema string,buf *bytes.Buffer, exparams map[string]interface{},callbacks ...ServiceCallback)

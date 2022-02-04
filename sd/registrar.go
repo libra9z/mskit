@@ -66,8 +66,8 @@ func NewRegistar(options ...SdOption) Registar {
 	}
 	return s
 }
-func (s *serviceDiscovery) Register(app *grace.MicroService,schema string) {
-	s.r.Register(app,schema)
+func (s *serviceDiscovery) Register(app *grace.MicroService,schema string,address string,params map[string]interface{},callbacks ...ServiceCallback) {
+	s.r.Register(app,schema,address,params,callbacks...)
 }
 
 func (s *serviceDiscovery) RegisterWithConf(app *grace.MicroService,schema string,fname string, callbacks ...ServiceCallback) {
