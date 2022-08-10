@@ -64,11 +64,12 @@ func cleanupVisitors() {
 }
 
 func Limit(ra int) rest.MskitFunc {
-	return func(r *rest.Mcontext, w http.ResponseWriter) {
+	return func(r *rest.Mcontext, w http.ResponseWriter) error {
 		ip, _, _ := net.SplitHostPort(r.RemoteAddr)
 		limiter := getVisitor(ra, ip)
 		if limiter != nil {
 			limiter.Take()
 		}
+		return nil
 	}
 }

@@ -6,64 +6,65 @@ import (
 	"github.com/go-kit/kit/log"
 	"github.com/libra9z/mskit/v4/rest"
 	"github.com/opentracing/opentracing-go"
+	zkOt "github.com/openzipkin-contrib/zipkin-go-opentracing"
 	"github.com/openzipkin/zipkin-go"
 	"github.com/openzipkin/zipkin-go/model"
 	"github.com/openzipkin/zipkin-go/propagation/b3"
 	"github.com/openzipkin/zipkin-go/reporter"
 	rhttp "github.com/openzipkin/zipkin-go/reporter/http"
-	zkOt "github.com/openzipkin-contrib/zipkin-go-opentracing"
 	"net/http"
 	"os"
 	"strconv"
 )
 
-const(
-	ZIPKIN_REPORTER_TYPE_HTTP 	= "http"
-	ZIPKIN_REPORTER_TYPE_KAFKA 	= "kafka"
-	ZIPKIN_REPORTER_TYPE_LOG 	= "log"
+const (
+	ZIPKIN_REPORTER_TYPE_HTTP  = "http"
+	ZIPKIN_REPORTER_TYPE_KAFKA = "kafka"
+	ZIPKIN_REPORTER_TYPE_LOG   = "log"
 )
 
 var _ Tracer = (*zipkinTracer)(nil)
+
 type zipkinTracer struct {
-	zipkinTracer		*zipkin.Tracer
-	zkTracer			opentracing.Tracer
-	Name				string
-	ServiceName 		string
-	logger				log.Logger
-	flushOnFinish		bool
+	zipkinTracer  *zipkin.Tracer
+	zkTracer      opentracing.Tracer
+	Name          string
+	ServiceName   string
+	logger        log.Logger
+	flushOnFinish bool
 
 	Tags           map[string]string
 	Propagate      bool
 	RequestSampler func(r *http.Request) bool
-	reporterType 	string
-	reportUrl		string
-	address			string  //微服务监听的地址和端口号 例如: 192.168.0.9:7811
+	reporterType   string
+	reportUrl      string
+	address        string //微服务监听的地址和端口号 例如: 192.168.0.9:7811
 }
 
-func NewZipkinTracer(log log.Logger,name,servicename,reportertype,reporturl,address string,tags map[string]string,Propagate,flushOnFinish bool,RequestSampler func(r *http.Request) bool )(Tracer,error){
+func NewZipkinTracer(log log.Logger, name, servicename, reportertype, reporturl, address string, tags map[string]string, Propagate, flushOnFinish bool, RequestSampler func(r *http.Request) bool) (Tracer, error) {
 	zt := &zipkinTracer{
-		logger: log,
-		Name: name,
-		ServiceName: servicename,
-		Tags: tags,
-		Propagate:Propagate,
+		logger:         log,
+		Name:           name,
+		ServiceName:    servicename,
+		Tags:           tags,
+		Propagate:      Propagate,
 		RequestSampler: RequestSampler,
-		reporterType: reportertype,
-		reportUrl: reporturl,
-		address: address,
-		flushOnFinish: flushOnFinish,
+		reporterType:   reportertype,
+		reportUrl:      reporturl,
+		address:        address,
+		flushOnFinish:  flushOnFinish,
 	}
 
-	if  zt.reporterType == "" {
+	if zt.reporterType == "" {
 		zt.reporterType = ZIPKIN_REPORTER_TYPE_HTTP
 	}
-	var reporter  reporter.Reporter
+	var reporter reporter.Reporter
 	var err error
-	switch zt.reporterType  {
+	switch zt.reporterType {
 	case ZIPKIN_REPORTER_TYPE_HTTP:
 		reporter = rhttp.NewReporter(zt.reportUrl)
 		if reporter == nil {
-			return nil,errors.New("cannot creater a new zipkin reporter")
+			return nil, errors.New("cannot creater a new zipkin reporter")
 		}
 
 	}
@@ -77,23 +78,23 @@ func NewZipkinTracer(log log.Logger,name,servicename,reportertype,reporturl,addr
 	}
 	zt.zkTracer = zkOt.Wrap(zt.zipkinTracer)
 	opentracing.SetGlobalTracer(zt.zkTracer)
-	return zt,nil
+	return zt, nil
 }
 
-func(t *zipkinTracer)GetServiceName() string {
+func (t *zipkinTracer) GetServiceName() string {
 	return t.ServiceName
 }
 
-func(t *zipkinTracer)GetTraceName() string {
+func (t *zipkinTracer) GetTraceName() string {
 	return t.Name
 }
-func(t *zipkinTracer)GetTracer() (string,interface{}) {
-	return TRACER_TYPE_ZIPKIN,t.zipkinTracer
+func (t *zipkinTracer) GetTracer() (string, interface{}) {
+	return TRACER_TYPE_ZIPKIN, t.zipkinTracer
 }
 
-func(t *zipkinTracer)HTTPServerTrace(operatename string) rest.ServerOption{
+func (t *zipkinTracer) HTTPServerTrace(operatename string) rest.ServerOption {
 	serverBefore := rest.ServerBefore(
-		func(c *rest.Mcontext, w http.ResponseWriter)  {
+		func(c *rest.Mcontext, w http.ResponseWriter) error {
 			var (
 				spanContext model.SpanContext
 				name        string
@@ -133,14 +134,17 @@ func(t *zipkinTracer)HTTPServerTrace(operatename string) rest.ServerOption{
 			)
 
 			c.Ctx = zipkin.NewContext(c.Ctx, span)
+			return nil
 		},
 	)
 
 	serverAfter := rest.ServerAfter(
-		func(c *rest.Mcontext, _ http.ResponseWriter) {
+		func(c *rest.Mcontext, _ http.ResponseWriter) error {
 			if span := zipkin.SpanFromContext(c.Ctx); span != nil {
 				span.Finish()
 			}
+
+			return nil
 		},
 	)
 
