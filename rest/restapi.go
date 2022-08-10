@@ -15,8 +15,9 @@ import (
 var _ RestService = (*RestApi)(nil)
 
 const DefaultContextKey = "MskitABContext"
+
 // HandlerFunc defines the handler used by gin middleware as return value.
-type MskitFunc func(*Mcontext,http.ResponseWriter)
+type MskitFunc func(*Mcontext, http.ResponseWriter) error
 
 // HandlersChain defines a HandlerFunc array.
 type BeforesChain []MskitFunc
@@ -39,12 +40,13 @@ func (c AftersChain) Last() MskitFunc {
 	}
 	return nil
 }
+
 type RestApi struct {
-	Request   *http.Request
-	Router    *httprouter.Router
-	after 		AftersChain
-	before 		BeforesChain
-	mc 			*Mcontext
+	Request *http.Request
+	Router  *httprouter.Router
+	after   AftersChain
+	before  BeforesChain
+	mc      *Mcontext
 }
 
 func (c *RestApi) After() AftersChain {
@@ -55,19 +57,19 @@ func (c *RestApi) Before() BeforesChain {
 	return c.before
 }
 
-func (c *RestApi) AfterUse( handlerFunc ...MskitFunc) {
-	c.after = append(c.after,handlerFunc...)
+func (c *RestApi) AfterUse(handlerFunc ...MskitFunc) {
+	c.after = append(c.after, handlerFunc...)
 }
 
 func (c *RestApi) BeforeUse(handlerFunc ...MskitFunc) {
-	c.before = append(c.before,handlerFunc...)
+	c.before = append(c.before, handlerFunc...)
 }
 
-func (c *RestApi) Mcontext()  *Mcontext{
+func (c *RestApi) Mcontext() *Mcontext {
 	return c.mc
 }
 
-func (c *RestApi) SetMcontext(mc *Mcontext)  {
+func (c *RestApi) SetMcontext(mc *Mcontext) {
 	c.mc = mc
 }
 
@@ -126,7 +128,7 @@ func (c *RestApi) GetErrorResponse() interface{} {
 需要在nginx上配置
 proxy_set_header Remote_addr $remote_addr;
 */
-func (c *RestApi) DecodeRequest(ctx context.Context, r *http.Request,w http.ResponseWriter) (request interface{}, err error) {
+func (c *RestApi) DecodeRequest(ctx context.Context, r *http.Request, w http.ResponseWriter) (request interface{}, err error) {
 
 	c.Request = r
 
@@ -186,10 +188,10 @@ func (c *RestApi) DecodeRequest(ctx context.Context, r *http.Request,w http.Resp
 		req.ContentType = CONTENT_TYPE_MULTIFORM
 	}
 
-	c.mc,_ = c.Prepare(&req)
+	c.mc, _ = c.Prepare(&req)
 	c.mc.writermem.reset(w)
 
-	return c.mc,err
+	return c.mc, err
 }
 
 func (c *RestApi) Prepare(r *Mcontext) (*Mcontext, error) {
@@ -204,7 +206,7 @@ func (c *RestApi) Finish(w http.ResponseWriter, response interface{}) error {
 	if w == nil {
 		return errors.New("writer is nil ")
 	}
-	w.Header().Set("Content-Type",MIMEJSON)
+	w.Header().Set("Content-Type", MIMEJSON)
 	w.Header().Add("Access-Control-Allow-Origin", "*")
 	w.Header().Add("Access-Control-Allow-Headers", "Content-Type,Origin,Accept,Content-Range,Content-Description,Content-Disposition")
 	w.Header().Add("Access-Control-Allow-Methods", "PUT,GET,POST,DELETE,OPTIONS")
@@ -222,7 +224,7 @@ func (c *RestApi) EncodeResponse(ctx context.Context, w http.ResponseWriter, res
 	}
 	if !c.mc.useContextWriter && !c.mc.UseRender {
 		err = c.Finish(w, response)
-	}else{
+	} else {
 		if !c.mc.UseRender {
 			switch c.mc.ContentType {
 			case CONTENT_TYPE_JSON:
@@ -240,7 +242,7 @@ type errorWrapper struct {
 	Error string `json:"error"`
 }
 
-func (c *RestApi)ErrorEncoder(_ context.Context, err error, w http.ResponseWriter) {
+func (c *RestApi) ErrorEncoder(_ context.Context, err error, w http.ResponseWriter) {
 	code := http.StatusInternalServerError
 	msg := err.Error()
 
