@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/libra9z/mskit/v4/trace"
+	consulclient "github.com/rpcxio/rpcx-consul/client"
 	"github.com/smallnest/rpcx/client"
 )
 
@@ -14,7 +15,7 @@ func RpcCallWithConsul(basepath, consuladdr, serviceName, methodName string, sel
 
 	ss := strings.Split(consuladdr, ";")
 
-	d, err := client.NewConsulDiscovery(basepath, serviceName, ss, nil)
+	d, err := consulclient.NewConsulDiscovery(basepath, serviceName, ss, nil)
 	if err != nil {
 		return err
 	}
@@ -57,6 +58,7 @@ func RpcxCall(ctx context.Context, tracer trace.Tracer,
 	options = append(options, MethodOption(methodName))
 	options = append(options, ServiceOption(service))
 	options = append(options, ServiceNameOption(serviceName))
+	options = append(options, SetTracerOption(tracer))
 
 	if len(vv) > 0 {
 		t := reflect.ValueOf(vv[0])

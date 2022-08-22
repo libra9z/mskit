@@ -13,10 +13,13 @@ import (
 	"github.com/libra9z/mskit/v4/sd"
 	"github.com/libra9z/mskit/v4/trace"
 	metrics "github.com/rcrowley/go-metrics"
+	consul "github.com/rpcxio/rpcx-consul/serverplugin"
 	etcd "github.com/rpcxio/rpcx-etcd/serverplugin"
 	nacos "github.com/rpcxio/rpcx-nacos/serverplugin"
+	"github.com/rpcxio/rpcx-plugins/server/otel"
+	redis "github.com/rpcxio/rpcx-redis/serverplugin"
+	zookeeper "github.com/rpcxio/rpcx-zookeeper/serverplugin"
 	"github.com/smallnest/rpcx/server"
-	"github.com/smallnest/rpcx/serverplugin"
 	otrace "go.opentelemetry.io/otel/trace"
 )
 
@@ -123,7 +126,6 @@ func RpcGetMethodWithTracer(name string) (Method, trace.Tracer) {
 
 	return nil, nil
 }
-
 
 func RpcServe() {
 
@@ -313,7 +315,7 @@ func NewRpcxServer(options ...RpcxServerOptions) *RpcServer {
 	cs := strings.Split(s.SdAddress, ",")
 	switch s.SdType {
 	case "consul":
-		p := &serverplugin.ConsulRegisterPlugin{
+		p := &consul.ConsulRegisterPlugin{
 			ServiceAddress: s.Network + "@" + s.ServiceAddr,
 			ConsulServers:  cs,
 			BasePath:       s.BasePath,
@@ -327,7 +329,7 @@ func NewRpcxServer(options ...RpcxServerOptions) *RpcServer {
 		s.Server.Plugins.Add(p)
 
 	case "redis":
-		p := &serverplugin.RedisRegisterPlugin{
+		p := &redis.RedisRegisterPlugin{
 			ServiceAddress: s.Network + "@" + s.ServiceAddr,
 			RedisServers:   cs,
 			BasePath:       s.BasePath,
@@ -340,7 +342,7 @@ func NewRpcxServer(options ...RpcxServerOptions) *RpcServer {
 		}
 		s.Server.Plugins.Add(p)
 	case "zookeeper":
-		p := &serverplugin.ZooKeeperRegisterPlugin{
+		p := &zookeeper.ZooKeeperRegisterPlugin{
 			ServiceAddress:   s.Network + "@" + s.ServiceAddr,
 			ZooKeeperServers: cs,
 			BasePath:         s.BasePath,
@@ -384,9 +386,9 @@ func NewRpcxServer(options ...RpcxServerOptions) *RpcServer {
 
 	if s.tracer != nil {
 		//zkp := serverplugin.OpenTracingPlugin{}
-		tt,tracer := s.tracer.GetTracer()
+		tt, tracer := s.tracer.GetTracer()
 		if tt == trace.TRACER_TYPE_OPENTELEMETRY {
-			zkp :=serverplugin.NewOpenTelemetryPlugin(tracer.(otrace.Tracer),nil)
+			zkp := otel.NewOpenTelemetryPlugin(tracer.(otrace.Tracer), nil)
 			s.Server.Plugins.Add(zkp)
 		}
 	}

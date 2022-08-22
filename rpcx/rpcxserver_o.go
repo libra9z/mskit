@@ -1,10 +1,10 @@
 package rpcx
 
 import (
-	"github.com/smallnest/rpcx/server"
-	"github.com/smallnest/rpcx/serverplugin"
-	metrics "github.com/rcrowley/go-metrics"
 	"github.com/libra9z/mskit/v4/log"
+	metrics "github.com/rcrowley/go-metrics"
+	consul "github.com/rpcxio/rpcx-consul/serverplugin"
+	"github.com/smallnest/rpcx/server"
 	"strings"
 	"time"
 )
@@ -20,10 +20,9 @@ func InitRpcServerWithConsul(network, serviceAddr string, consulAddr string, bas
 
 	defautlServer = NewRpcServerWithConsul(network, serviceAddr, consulAddr, basepath)
 	if defautlServer == nil {
-		log.Mslog.Log("error","cannot initial rpc server.")
+		log.Mslog.Log("error", "cannot initial rpc server.")
 	}
 }
-
 
 func NewRpcServerWithConsul(network, serviceAddr string, consulAddr string, basepath string) *RpcServer {
 
@@ -36,7 +35,7 @@ func NewRpcServerWithConsul(network, serviceAddr string, consulAddr string, base
 		network = "tcp"
 	}
 
-	s.logger.Log("info","开始向consul注册服务...")
+	s.logger.Log("info", "开始向consul注册服务...")
 
 	cs := strings.Split(consulAddr, ",")
 
@@ -44,7 +43,7 @@ func NewRpcServerWithConsul(network, serviceAddr string, consulAddr string, base
 	s.ServiceAddr = serviceAddr
 	s.Methods = make(map[string]Method)
 
-	p := &serverplugin.ConsulRegisterPlugin{
+	p := &consul.ConsulRegisterPlugin{
 		ServiceAddress: network + "@" + serviceAddr,
 		ConsulServers:  cs,
 		BasePath:       basepath,

@@ -3,6 +3,7 @@ package rpcx
 import (
 	"context"
 	"fmt"
+	"github.com/libra9z/mskit/v4/trace"
 	"reflect"
 	"strings"
 	"sync"
@@ -10,8 +11,11 @@ import (
 	_const "github.com/libra9z/mskit/v4/const"
 	"github.com/libra9z/mskit/v4/sd"
 	"github.com/libra9z/utils"
+	consul "github.com/rpcxio/rpcx-consul/client"
 	etcd "github.com/rpcxio/rpcx-etcd/client"
 	nacos "github.com/rpcxio/rpcx-nacos/client"
+	redis "github.com/rpcxio/rpcx-redis/client"
+	zookeeper "github.com/rpcxio/rpcx-zookeeper/client"
 	"github.com/smallnest/rpcx/client"
 	"github.com/smallnest/rpcx/share"
 
@@ -36,6 +40,7 @@ type Client struct {
 	after       []ClientResponseFunc
 	finalizer   []ClientFinalizerFunc
 	Params      map[string]interface{}
+	tracer      trace.Tracer
 }
 
 var ClientPool map[string]*XClientPool
@@ -89,19 +94,19 @@ func NewClientPool(size int, sdtype, sdaddr, basepath, serviceName string, failM
 	switch sdtype {
 	case "consul":
 		ss := strings.Split(sdaddr, _const.ADDR_SPLIT_STRING)
-		cs, err = client.NewConsulDiscovery(basepath, serviceName, ss, nil)
+		cs, err = consul.NewConsulDiscovery(basepath, serviceName, ss, nil)
 	case "redis":
 		ss := strings.Split(sdaddr, _const.ADDR_SPLIT_STRING)
-		cs, err = client.NewRedisDiscovery(basepath, serviceName, ss, nil)
+		cs, err = redis.NewRedisDiscovery(basepath, serviceName, ss, nil)
 	case "zookeeper":
 		ss := strings.Split(sdaddr, _const.ADDR_SPLIT_STRING)
-		cs, err = client.NewZookeeperDiscovery(basepath, serviceName, ss, nil)
+		cs, err = zookeeper.NewZookeeperDiscovery(basepath, serviceName, ss, nil)
 	case "nacos":
 		clientConfig := sd.GetClientConfig(params)
 		sc := sd.GetServerConfig(sdaddr, params)
 		clustername := utils.ConvertToString(params["cluster_name"])
 		groupname := utils.ConvertToString(params["group_name"])
-		cs, err = nacos.NewNacosDiscovery(serviceName, clustername, groupname,clientConfig, sc)
+		cs, err = nacos.NewNacosDiscovery(serviceName, clustername, groupname, clientConfig, sc)
 	case "etcd3":
 		ss := strings.Split(sdaddr, _const.ADDR_SPLIT_STRING)
 		cs, err = etcd.NewEtcdV3Discovery(basepath, serviceName, ss, true, nil)
@@ -234,6 +239,9 @@ func ServiceOption(service string) ClientOption {
 }
 func ServiceNameOption(svrname string) ClientOption {
 	return func(c *Client) { c.serviceName = svrname }
+}
+func SetTracerOption(tracer trace.Tracer) ClientOption {
+	return func(c *Client) { c.tracer = tracer }
 }
 
 func PoolSizeOption(poolsize int) ClientOption {
