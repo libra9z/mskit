@@ -109,28 +109,28 @@ func (c *Mcontext) reset() {
 	c.formCache = nil
 }
 
-func (r *Mcontext) SetAuthorized(auth bool) {
-	r.IsAuthorized = auth
+func (c *Mcontext) SetAuthorized(auth bool) {
+	c.IsAuthorized = auth
 }
 
-func (r *Mcontext) SetUserid(uid string) {
-	r.Userid = uid
+func (c *Mcontext) SetUserid(uid string) {
+	c.Userid = uid
 }
 
-func (r *Mcontext) GetUserid() string {
-	return r.Userid
+func (c *Mcontext) GetUserid() string {
+	return c.Userid
 }
-func (r *Mcontext) SetCustid(uid string) {
-	r.Custid = uid
-}
-
-func (r *Mcontext) GetCustid() string {
-	return r.Custid
+func (c *Mcontext) SetCustid(uid string) {
+	c.Custid = uid
 }
 
-func (r *Mcontext) GetContentType() string {
+func (c *Mcontext) GetCustid() string {
+	return c.Custid
+}
+
+func (c *Mcontext) GetContentType() string {
 	var ct string
-	switch r.ContentType {
+	switch c.ContentType {
 	case CONTENT_TYPE_FORM:
 		ct = "application/x-www-form-urlencoded"
 	case CONTENT_TYPE_XML:

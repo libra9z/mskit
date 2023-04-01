@@ -5,6 +5,8 @@ import (
 	"github.com/go-kit/kit/log"
 	"github.com/libra9z/mskit/v4/rest"
 	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/exporters/jaeger"
 	"go.opentelemetry.io/otel/exporters/zipkin"
 	"go.opentelemetry.io/otel/sdk/resource"
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
@@ -17,6 +19,7 @@ import (
 
 const (
 	OT_EXPORTER_ZIPKIN = "zipkin"
+	OT_EXPORTER_JAEGER = "jaeger"
 )
 
 type openTelemetry struct {
@@ -49,30 +52,54 @@ func NewOpentelemetryTracer(logger log.Logger, name, servicename, exportertype, 
 		flushOnFinish:  flushOnFinish,
 		RequestSampler: RequestSampler,
 	}
-	var exporter *zipkin.Exporter
 	var err error
-	var logg = olog.New(os.Stderr, "[zipkin-exporter]: ", olog.Ldate|olog.Ltime|olog.Lmsgprefix)
-
-	switch o.exporterType {
-	case OT_EXPORTER_ZIPKIN:
-		exporter, err = zipkin.New(exporterurl, zipkin.WithLogger(logg))
-
-	}
+	o.tp, err = tracerProvider(o.exporterType, o.exporterUrl, o.ServiceName, "production")
 	if err != nil {
-		logger.Log("error", "不能连接exporter")
+		logger.Log("exporter", "connnection error.")
 		return nil, err
 	}
-	batcher := sdktrace.NewBatchSpanProcessor(exporter)
-
-	o.tp = sdktrace.NewTracerProvider(
-		sdktrace.WithSpanProcessor(batcher),
-		sdktrace.WithResource(resource.NewWithAttributes(
-			semconv.SchemaURL,
-			semconv.ServiceNameKey.String(o.ServiceName),
-		)),
-	)
 	otel.SetTracerProvider(o.tp)
 	return o, nil
+}
+
+func tracerProvider(exporterType, url, service, env string) (*sdktrace.TracerProvider, error) {
+
+	var tp *sdktrace.TracerProvider
+	switch exporterType {
+	case OT_EXPORTER_ZIPKIN:
+		logg := olog.New(os.Stderr, "[zipkin-exporter]: ", olog.Ldate|olog.Ltime|olog.Lmsgprefix)
+		exporter, err := zipkin.New(url, zipkin.WithLogger(logg))
+		if err != nil {
+			return nil, err
+		}
+		batcher := sdktrace.NewBatchSpanProcessor(exporter)
+
+		tp = sdktrace.NewTracerProvider(
+			sdktrace.WithSpanProcessor(batcher),
+			sdktrace.WithResource(resource.NewWithAttributes(
+				semconv.SchemaURL,
+				semconv.ServiceNameKey.String(service),
+			)),
+		)
+	case OT_EXPORTER_JAEGER:
+		// Create the Jaeger exporter
+		exp, err := jaeger.New(jaeger.WithCollectorEndpoint(jaeger.WithEndpoint(url)))
+		if err != nil {
+			return nil, err
+		}
+		tp = sdktrace.NewTracerProvider(
+			// Always be sure to batch in production.
+			sdktrace.WithBatcher(exp),
+			// Record information about this application in a Resource.
+			sdktrace.WithResource(resource.NewWithAttributes(
+				semconv.SchemaURL,
+				semconv.ServiceNameKey.String(service),
+				attribute.String("environment", env),
+			)),
+		)
+	}
+
+	return tp, nil
 }
 
 func (t *openTelemetry) GetServiceName() string {

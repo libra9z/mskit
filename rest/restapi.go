@@ -133,7 +133,7 @@ func (c *RestApi) DecodeRequest(ctx context.Context, r *http.Request, w http.Res
 	c.Request = r
 
 	req := Mcontext{}
-	req.Ctx = context.Background()
+	req.Ctx = ctx
 	req.reset()
 	req.Method = r.Method
 	//req.writermem.reset(w)
@@ -218,6 +218,7 @@ func (c *RestApi) Finish(w http.ResponseWriter, response interface{}) error {
 func (c *RestApi) EncodeResponse(ctx context.Context, w http.ResponseWriter, response interface{}) error {
 
 	var err error
+	//w = c.mc.writermem.ResponseWriter
 
 	if response == nil {
 		response = ""
