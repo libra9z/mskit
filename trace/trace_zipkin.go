@@ -3,7 +3,7 @@ package trace
 import (
 	"context"
 	"errors"
-	"github.com/go-kit/kit/log"
+	"github.com/libra9z/mskit/v4/log"
 	"github.com/libra9z/mskit/v4/rest"
 	"github.com/opentracing/opentracing-go"
 	zkOt "github.com/openzipkin-contrib/zipkin-go-opentracing"
@@ -73,7 +73,7 @@ func NewZipkinTracer(log log.Logger, name, servicename, reportertype, reporturl,
 		reporter, zipkin.WithLocalEndpoint(ep), //zipkin.WithSharedSpans(true), zipkin.WithNoopTracer(useNoopTracer),
 	)
 	if err != nil {
-		zt.logger.Log("error", err)
+		zt.logger.Error("error=%v", err)
 		os.Exit(1)
 	}
 	zt.zkTracer = zkOt.Wrap(zt.zipkinTracer)
@@ -115,7 +115,7 @@ func (t *zipkinTracer) HTTPServerTrace(operatename string) rest.ServerOption {
 				}
 
 				if spanContext.Err != nil {
-					t.logger.Log("error", spanContext.Err)
+					t.logger.Error("error=%v", spanContext.Err)
 				}
 			}
 

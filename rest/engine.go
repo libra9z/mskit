@@ -3,8 +3,8 @@ package rest
 import (
 	"context"
 	"encoding/json"
-	"github.com/go-kit/kit/log"
 	"github.com/libra9z/mskit/v4/endpoint"
+	"github.com/libra9z/mskit/v4/log"
 	"net/http"
 )
 
@@ -33,7 +33,7 @@ func NewEngine(
 		dec:          dec,
 		enc:          enc,
 		errorEncoder: DefaultErrorEncoder,
-		errorHandler: NewLogErrorHandler(log.NewNopLogger()),
+		errorHandler: NewLogErrorHandler(log.Mslog),
 	}
 	for _, option := range options {
 		option(s)

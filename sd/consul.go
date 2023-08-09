@@ -4,14 +4,14 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	consulsd "github.com/go-kit/kit/sd/consul"
 	"github.com/hashicorp/consul/api"
+	"github.com/libra9z/log4go"
 	_const "github.com/libra9z/mskit/v4/const"
 	"github.com/libra9z/mskit/v4/grace"
 	mslog "github.com/libra9z/mskit/v4/log"
+	consulsd "github.com/libra9z/sd/consul"
 	"github.com/libra9z/utils"
 	"io/ioutil"
-	"log"
 	"net"
 	"os"
 	"os/signal"
@@ -92,53 +92,52 @@ import (
 
 */
 
-
 var logger = mslog.Mslog
 
 var _ Registar = (*consulRegister)(nil)
 
 type consulRegister struct {
-	servers 		string
-	token			string
-	prefix 			string
-	name 			string
-	callback 		ServiceCallback
-	params 			map[string]interface{}
-	reg             *consulsd.Registrar
-	addr 			string		//listen on address and port
+	servers  string
+	token    string
+	prefix   string
+	name     string
+	callback ServiceCallback
+	params   map[string]interface{}
+	reg      *consulsd.Registrar
+	addr     string //listen on address and port
 }
 
-func NewConsulRegistar(name string, prefix string, addr, consul, token string, callback ServiceCallback, params map[string]interface{})(Registar,error){
+func NewConsulRegistar(name string, prefix string, addr, consul, token string, callback ServiceCallback, params map[string]interface{}) (Registar, error) {
 	c := &consulRegister{
-		name: name,
-		prefix: prefix,
-		servers: consul,
+		name:     name,
+		prefix:   prefix,
+		servers:  consul,
 		callback: callback,
-		token: token,
-		params: params,
-		addr: addr,
+		token:    token,
+		params:   params,
+		addr:     addr,
 	}
 
-	return c,nil
+	return c, nil
 }
-func (c *consulRegister)Register(app *grace.MicroService,schema string,address string,params map[string]interface{},callbacks ...ServiceCallback) {
+func (c *consulRegister) Register(app *grace.MicroService, schema string, address string, params map[string]interface{}, callbacks ...ServiceCallback) {
 
 	if c.name == "" {
-		log.Fatal("name empty")
+		mslog.Mslog.Critical("name empty")
 	}
 	if c.prefix == "" {
-		log.Fatal("prefix empty")
+		mslog.Mslog.Critical("prefix empty")
 	}
 
 	//consul address split
 	cs := strings.Split(c.servers, _const.ADDR_SPLIT_STRING)
 
 	if len(cs) <= 0 {
-		log.Fatal("no consul address config")
+		mslog.Mslog.Critical("no consul address config")
 		return
 	}
 	c.params = params
-	if len(callbacks)>0 {
+	if len(callbacks) > 0 {
 		c.callback = callbacks[0]
 	}
 	c.servers = cs[0]
@@ -165,16 +164,16 @@ func (c *consulRegister)Register(app *grace.MicroService,schema string,address s
 	prefixes := strings.Split(c.prefix, ",")
 	host, portstr, err := net.SplitHostPort(c.addr)
 	if err != nil {
-		log.Fatal(err)
+		mslog.Mslog.Critical(err)
 	}
 	port, err := strconv.Atoi(portstr)
 	if err != nil {
-		log.Fatal(err)
+		mslog.Mslog.Critical(err)
 	}
 	go func() {
-		log.Printf("Listening on %s serving %s", c.addr, c.prefix)
+		mslog.Mslog.Info("Listening on %s serving %s", c.addr, c.prefix)
 		if err := c.callback(app, c.params); err != nil {
-			log.Fatal(err)
+			mslog.Mslog.Critical(err)
 		}
 	}()
 
@@ -200,14 +199,14 @@ func (c *consulRegister)Register(app *grace.MicroService,schema string,address s
 
 	client := getConsulClient(c.servers, schema)
 
-	c.reg = consulsd.NewRegistrar(client, service, logger)
+	c.reg = consulsd.NewRegistrar(client, service, log4go.NewDefaultLogger(log4go.FINEST))
 	c.reg.Register()
 }
 
-func (c *consulRegister)RegisterFromMemory(app *grace.MicroService,schema string,reader *bytes.Buffer, exparams map[string]interface{}, callbacks ...ServiceCallback) {
+func (c *consulRegister) RegisterFromMemory(app *grace.MicroService, schema string, reader *bytes.Buffer, exparams map[string]interface{}, callbacks ...ServiceCallback) {
 
 	if reader == nil {
-		log.Fatal("内存中没有默认配置。" )
+		mslog.Mslog.Critical("内存中没有默认配置。")
 		return
 	}
 	body := reader.Bytes()
@@ -218,7 +217,7 @@ func (c *consulRegister)RegisterFromMemory(app *grace.MicroService,schema string
 	err := json.Unmarshal(body, &data)
 
 	if err != nil {
-		log.Fatal("json:" + err.Error())
+		mslog.Mslog.Critical("json:" + err.Error())
 		return
 	}
 
@@ -226,7 +225,7 @@ func (c *consulRegister)RegisterFromMemory(app *grace.MicroService,schema string
 	cs := strings.Split(c.servers, _const.ADDR_SPLIT_STRING)
 
 	if len(cs) <= 0 {
-		log.Fatal("no consul address config")
+		mslog.Mslog.Critical("no consul address config")
 		return
 	}
 
@@ -249,19 +248,19 @@ func (c *consulRegister)RegisterFromMemory(app *grace.MicroService,schema string
 		cps["trustfile"] = vs["trustfile"]
 	}
 
-	var de bool =false
+	var de bool = false
 	if data["docker_enable"] != nil {
 		cps["docker_enable"] = data["docker_enable"]
 		de = data["docker_enable"].(bool)
 	}
 	switch schema {
-	case "http","https":
+	case "http", "https":
 		t := reflect.ValueOf(p)
 		switch t.Kind() {
 		case reflect.Slice:
 			ps := p.([]interface{})
 			if len(ps) != len(callbacks) {
-				log.Fatal("服务数量与回调函数数量不匹配。")
+				mslog.Mslog.Critical("服务数量与回调函数数量不匹配。")
 				return
 			}
 			for i, vs := range ps {
@@ -276,7 +275,7 @@ func (c *consulRegister)RegisterFromMemory(app *grace.MicroService,schema string
 			//select {}
 		case reflect.Map:
 			if len(callbacks) < 1 {
-				log.Fatal("没有指定回调函数。")
+				mslog.Mslog.Critical("没有指定回调函数。")
 				return
 			}
 			params = p.(map[string]interface{})
@@ -315,7 +314,7 @@ func (c *consulRegister)RegisterFromMemory(app *grace.MicroService,schema string
 		case reflect.Slice:
 			ps := p.([]interface{})
 			if len(ps) != len(callbacks) {
-				log.Fatal("服务数量与回调函数数量不匹配。")
+				mslog.Mslog.Critical("服务数量与回调函数数量不匹配。")
 				return
 			}
 			for i, vs := range ps {
@@ -330,29 +329,29 @@ func (c *consulRegister)RegisterFromMemory(app *grace.MicroService,schema string
 			//select {}
 		case reflect.Map:
 			if len(callbacks) < 1 {
-				log.Fatal("没有指定回调函数。")
+				mslog.Mslog.Critical("没有指定回调函数。")
 				return
 			}
 			params = p.(map[string]interface{})
 			registerService(app, schema, c.servers, c.token, params, callbacks[0], cps)
 		}
 	default:
-		log.Fatal("没有配置参数。")
+		mslog.Mslog.Critical("没有配置参数。")
 		panic("没有配置参数")
 	}
 }
 
-func (c *consulRegister)Deregister() {
+func (c *consulRegister) Deregister() {
 	if c.reg != nil {
 		c.reg.Deregister()
 	}
 
 }
 
-func (c *consulRegister)RegisterWithConf(app *grace.MicroService,schema,fname string, callbacks ...ServiceCallback) {
+func (c *consulRegister) RegisterWithConf(app *grace.MicroService, schema, fname string, callbacks ...ServiceCallback) {
 
 	if fname == "" {
-		log.Fatal("没有指定配置文件。\n")
+		mslog.Mslog.Critical("没有指定配置文件。\n")
 		return
 	}
 
@@ -360,14 +359,14 @@ func (c *consulRegister)RegisterWithConf(app *grace.MicroService,schema,fname st
 
 	buf := bytes.NewBuffer(body)
 
-	c.RegisterFromMemory(app,schema,buf,nil,callbacks...)
+	c.RegisterFromMemory(app, schema, buf, nil, callbacks...)
 
 }
 
-func (c *consulRegister)RegisterFile(app *grace.MicroService,schema,fname string, callbacks ...ServiceCallback) {
+func (c *consulRegister) RegisterFile(app *grace.MicroService, schema, fname string, callbacks ...ServiceCallback) {
 
 	if fname == "" {
-		log.Fatal("没有指定配置文件。\n")
+		mslog.Mslog.Critical("没有指定配置文件。\n")
 		return
 	}
 
@@ -375,7 +374,7 @@ func (c *consulRegister)RegisterFile(app *grace.MicroService,schema,fname string
 
 	buf := bytes.NewBuffer(body)
 
-	c.RegisterFromMemory(app,schema,buf,nil,callbacks...)
+	c.RegisterFromMemory(app, schema, buf, nil, callbacks...)
 
 }
 
@@ -393,7 +392,7 @@ func getConsulClient(addr, schema string) consulsd.Client {
 		}
 		consulClient, err := api.NewClient(consulConfig)
 		if err != nil {
-			log.Fatal(err)
+			mslog.Mslog.Critical(err)
 			os.Exit(1)
 		}
 		client = consulsd.NewClient(consulClient)
@@ -402,11 +401,10 @@ func getConsulClient(addr, schema string) consulsd.Client {
 	return client
 }
 
-
 func readFile(path string) []byte {
 	f, err := ioutil.ReadFile(path)
 	if err != nil {
-		log.Fatal(err)
+		mslog.Mslog.Critical(err)
 	}
 	return f
 }
@@ -444,7 +442,7 @@ func registerService(app *grace.MicroService, schema, consul, token string, para
 	}
 
 	if port == 0 {
-		log.Fatal("没有指定端口号。")
+		mslog.Mslog.Critical("没有指定端口号。")
 		return
 	}
 
@@ -454,12 +452,12 @@ func registerService(app *grace.MicroService, schema, consul, token string, para
 		if de {
 			datas["host"] = ""
 
-		}else{
+		} else {
 			datas["host"] = host
 		}
 		fmt.Printf("Listening on %v:%d serving %s\n", datas["host"], po, prefix)
 		if err := callback(app, datas); err != nil {
-			log.Fatal(err)
+			mslog.Mslog.Critical(err)
 		}
 	}(port)
 
@@ -622,11 +620,11 @@ func registerService(app *grace.MicroService, schema, consul, token string, para
 	}
 	c := getConsulClient(consul, schema)
 
-	reg := consulsd.NewRegistrar(c, service, logger)
+	reg := consulsd.NewRegistrar(c, service, log4go.NewDefaultLogger(log4go.FINEST))
 
 	reg.Register()
 
-	log.Printf("Registered service %q in consul with tags %q", name, strings.Join(tags, ","))
+	mslog.Mslog.Info("Registered service %q in consul with tags %q", name, strings.Join(tags, ","))
 
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, os.Interrupt, os.Kill)
@@ -634,6 +632,6 @@ func registerService(app *grace.MicroService, schema, consul, token string, para
 
 	reg.Deregister()
 
-	log.Printf("Deregistered service %q in consul", name)
+	mslog.Mslog.Info("Deregistered service %q in consul", name)
 
 }

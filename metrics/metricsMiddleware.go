@@ -1,15 +1,14 @@
 package metrics
 
-
 import (
 	"context"
 	"errors"
 	"strings"
 	"time"
 
-	"github.com/go-kit/kit/log"
 	"github.com/go-kit/kit/metrics"
 	"github.com/libra9z/mskit/v4/endpoint"
+	"github.com/libra9z/mskit/v4/log"
 	"github.com/libra9z/mskit/v4/rest"
 
 	kitprometheus "github.com/go-kit/kit/metrics/prometheus"
@@ -23,7 +22,7 @@ type metricsMmConf struct {
 
 var imc *metricsMmConf
 
-func InitMetrics(namespace,subsystem string) {
+func InitMetrics(namespace, subsystem string) {
 	imc = &metricsMmConf{
 		kitprometheus.NewCounterFrom(stdprometheus.CounterOpts{
 			Namespace: namespace,

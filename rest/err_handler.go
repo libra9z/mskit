@@ -1,10 +1,9 @@
 package rest
 
-
 import (
 	"context"
 
-	"github.com/go-kit/kit/log"
+	"github.com/libra9z/mskit/v4/log"
 )
 
 // ErrorHandler receives a transport error to be processed for diagnostic purposes.
@@ -25,7 +24,7 @@ func NewLogErrorHandler(logger log.Logger) *LogErrorHandler {
 }
 
 func (h *LogErrorHandler) Handle(ctx context.Context, err error) {
-	h.logger.Log("err", err)
+	h.logger.Error("error=%v", err)
 }
 
 // The ErrorHandlerFunc type is an adapter to allow the use of

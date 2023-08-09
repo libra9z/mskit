@@ -1,4 +1,3 @@
-//
 package rpcx
 
 import (
@@ -85,7 +84,7 @@ func RpcRegisterDefaultService(servName RpcServiceName, service RpcService, meta
 	if defautlServer != nil {
 		defautlServer.RegisterDefaultService(servName, service, meta)
 	} else {
-		log.Mslog.Log("error", "register default services failed.")
+		log.Mslog.Error("register default services failed.")
 	}
 
 }
@@ -95,7 +94,7 @@ func RpcRegisterDefaultMethod(methodName string, m Method) {
 	if defautlServer != nil {
 		defautlServer.RegisterMethod(methodName, m)
 	} else {
-		log.Mslog.Log("error", "register default method failed.")
+		log.Mslog.Error("register default method failed.")
 	}
 
 }
@@ -104,7 +103,7 @@ func RegisterMethod(methodName string, m Method) {
 	if defautlServer != nil {
 		defautlServer.RegisterMethod(methodName, m)
 	} else {
-		log.Mslog.Log("error", "register default method failed.")
+		log.Mslog.Error("register default method failed.")
 	}
 
 }
@@ -132,7 +131,7 @@ func RpcServe() {
 	if defautlServer != nil {
 		defautlServer.Serve()
 	} else {
-		log.Mslog.Log("error", "cannot start Rpcx server,default server is nil.")
+		log.Mslog.Error("cannot start Rpcx server,default server is nil.")
 	}
 }
 
@@ -145,7 +144,7 @@ func (s *RpcServer) RegisterService(servName RpcServiceName, service RpcService,
 		err := s.Server.RegisterName(servName.GetServiceName(), service, metadata)
 		//s.Server.Register(service,metadata)
 		if err != nil {
-			s.logger.Log("error", err, "reason", "不能注册服务")
+			s.logger.Error("error= %v,reason=不能注册服务", err)
 		}
 	}
 }
@@ -153,14 +152,14 @@ func (s *RpcServer) RegisterService(servName RpcServiceName, service RpcService,
 func (s *RpcServer) RegisterDefaultService(servName RpcServiceName, service RpcService, meta string) {
 
 	if service != nil {
-		s.logger.Log("info", "注册服务")
+		s.logger.Info("注册服务")
 		err := s.Server.RegisterName(servName.GetServiceName(), service, meta)
 		//err := s.Server.Register(service,meta)
 		if err != nil {
-			s.logger.Log("error", err, "reason", "不能注册服务")
+			s.logger.Error("error=%v,reason=不能注册服务", err)
 		}
 	} else {
-		s.logger.Log("error", "不能注册服务，service为nil")
+		s.logger.Error("error= 不能注册服务，service为nil")
 	}
 }
 
@@ -173,11 +172,11 @@ func (s *RpcServer) Serve() error {
 	} else {
 		addr = s.ServiceAddr
 	}
-	s.logger.Log("rpcx_server_running_on: ", addr)
+	s.logger.Info("rpcx_server_running_on: %s", addr)
 	err := s.Server.Serve(s.Network, addr)
 
 	if err != nil {
-		s.logger.Log("cannot_run_rpcx_server: ", err)
+		s.logger.Error("cannot run_rpcx_server: %v", err)
 		return err
 	}
 	return nil
@@ -248,7 +247,7 @@ func (jr *JSONRpc) Services(ctx context.Context, req *RpcRequest, ret *RpcRespon
 	em := make(map[string]interface{})
 	if vs["method"] != nil {
 		method := vs["method"].(string)
-		log.Mslog.Log("method", method)
+		log.Mslog.Info("method=%s", method)
 		if method != "" {
 			var function Method
 			var tracer trace.Tracer
@@ -260,7 +259,7 @@ func (jr *JSONRpc) Services(ctx context.Context, req *RpcRequest, ret *RpcRespon
 			if function != nil {
 				result, err = function(ctx, tracer, req.Appid, req.SiteId, req.Token, vs["params"])
 			} else {
-				log.Mslog.Log("error", "没有找对对应的方法。")
+				log.Mslog.Error("error=没有找对对应的方法。")
 			}
 		} else {
 			em["code"] = JSONRPC_ERR_METHOD_NOT_FOUND
@@ -310,7 +309,7 @@ func NewRpcxServer(options ...RpcxServerOptions) *RpcServer {
 		s.GroupName = "rpcx"
 	}
 	msg := fmt.Sprintf("%s registering... ", s.SdType)
-	s.logger.Log("info", msg)
+	s.logger.Info("info=%v", msg)
 
 	cs := strings.Split(s.SdAddress, ",")
 	switch s.SdType {
@@ -324,7 +323,7 @@ func NewRpcxServer(options ...RpcxServerOptions) *RpcServer {
 		}
 		err := p.Start()
 		if err != nil {
-			s.logger.Log("error", err)
+			s.logger.Error("error=%v", err)
 		}
 		s.Server.Plugins.Add(p)
 
@@ -338,7 +337,7 @@ func NewRpcxServer(options ...RpcxServerOptions) *RpcServer {
 		}
 		err := p.Start()
 		if err != nil {
-			s.logger.Log("error", err)
+			s.logger.Error("error=%v", err)
 		}
 		s.Server.Plugins.Add(p)
 	case "zookeeper":
@@ -351,7 +350,7 @@ func NewRpcxServer(options ...RpcxServerOptions) *RpcServer {
 		}
 		err := p.Start()
 		if err != nil {
-			s.logger.Log("error", err)
+			s.logger.Error("error=%v", err)
 		}
 		s.Server.Plugins.Add(p)
 
@@ -369,7 +368,7 @@ func NewRpcxServer(options ...RpcxServerOptions) *RpcServer {
 		// }
 		err := p.Start()
 		if err != nil {
-			s.logger.Log("error", err)
+			s.logger.Error("error=%v", err)
 		}
 		s.Server.Plugins.Add(p)
 	case "etcd3":
@@ -379,7 +378,7 @@ func NewRpcxServer(options ...RpcxServerOptions) *RpcServer {
 		}
 		err := p.Start()
 		if err != nil {
-			s.logger.Log("error", err)
+			s.logger.Error("error=%v", err)
 		}
 		s.Server.Plugins.Add(p)
 	}

@@ -2,7 +2,7 @@ package trace
 
 import (
 	"context"
-	"github.com/go-kit/kit/log"
+	"github.com/libra9z/mskit/v4/log"
 	"github.com/libra9z/mskit/v4/rest"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
@@ -12,9 +12,7 @@ import (
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
 	semconv "go.opentelemetry.io/otel/semconv/v1.7.0"
 	otrace "go.opentelemetry.io/otel/trace"
-	olog "log"
 	"net/http"
-	"os"
 )
 
 const (
@@ -55,7 +53,7 @@ func NewOpentelemetryTracer(logger log.Logger, name, servicename, exportertype, 
 	var err error
 	o.tp, err = tracerProvider(o.exporterType, o.exporterUrl, o.ServiceName, "production")
 	if err != nil {
-		logger.Log("exporter", "connnection error.")
+		logger.Error("exporter=connnection error.")
 		return nil, err
 	}
 	otel.SetTracerProvider(o.tp)
@@ -65,10 +63,12 @@ func NewOpentelemetryTracer(logger log.Logger, name, servicename, exportertype, 
 func tracerProvider(exporterType, url, service, env string) (*sdktrace.TracerProvider, error) {
 
 	var tp *sdktrace.TracerProvider
+
 	switch exporterType {
 	case OT_EXPORTER_ZIPKIN:
-		logg := olog.New(os.Stderr, "[zipkin-exporter]: ", olog.Ldate|olog.Ltime|olog.Lmsgprefix)
-		exporter, err := zipkin.New(url, zipkin.WithLogger(logg))
+		//logg := olog.New(os.Stderr, "[zipkin-exporter]: ", olog.Ldate|olog.Ltime|olog.Lmsgprefix)
+		exporter, err := zipkin.New(url)
+		//exporter, err := zipkin.New(url, zipkin.WithLogger(logg))
 		if err != nil {
 			return nil, err
 		}

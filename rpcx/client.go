@@ -19,7 +19,7 @@ import (
 	"github.com/smallnest/rpcx/client"
 	"github.com/smallnest/rpcx/share"
 
-	"github.com/go-kit/kit/endpoint"
+	"github.com/libra9z/mskit/v4/endpoint"
 )
 
 // Client wraps a RPCx connection and provides a method that implements

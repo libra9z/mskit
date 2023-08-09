@@ -2,12 +2,12 @@ package mskit
 
 import (
 	"fmt"
-	"github.com/go-kit/kit/log"
 	"github.com/libra9z/httprouter"
-	"net/http"
 	"github.com/libra9z/mskit/v4/grace"
+	"github.com/libra9z/mskit/v4/log"
 	. "github.com/libra9z/mskit/v4/rest"
 	"github.com/libra9z/mskit/v4/trace"
+	"net/http"
 )
 
 var (
@@ -26,9 +26,13 @@ func New() *grace.MicroService {
 	return ms
 }
 
-/**
+/*
+*
+
 	包方法:
-**/
+
+*
+*/
 func RegisterRestService(path string, rest RestService, middlewares ...RestMiddleware) {
 	MsRest.RegisterRestService(path, rest, middlewares...)
 }

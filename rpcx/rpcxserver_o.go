@@ -10,17 +10,17 @@ import (
 )
 
 /*
-	参数network的定义如下：
-	kcp：
-	reuseport：
-	quic
-	default   tcp
+参数network的定义如下：
+kcp：
+reuseport：
+quic
+default   tcp
 */
 func InitRpcServerWithConsul(network, serviceAddr string, consulAddr string, basepath string) {
 
 	defautlServer = NewRpcServerWithConsul(network, serviceAddr, consulAddr, basepath)
 	if defautlServer == nil {
-		log.Mslog.Log("error", "cannot initial rpc server.")
+		log.Mslog.Error("cannot initial rpc server.")
 	}
 }
 
@@ -35,7 +35,7 @@ func NewRpcServerWithConsul(network, serviceAddr string, consulAddr string, base
 		network = "tcp"
 	}
 
-	s.logger.Log("info", "开始向consul注册服务...")
+	s.logger.Info("开始向consul注册服务...")
 
 	cs := strings.Split(consulAddr, ",")
 
@@ -53,7 +53,7 @@ func NewRpcServerWithConsul(network, serviceAddr string, consulAddr string, base
 
 	err := p.Start()
 	if err != nil {
-		s.logger.Log("error", err)
+		s.logger.Error("error=%v", err)
 	}
 	s.Server.Plugins.Add(p)
 

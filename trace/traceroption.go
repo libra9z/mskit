@@ -1,10 +1,9 @@
 package trace
 
-
 import (
 	"net/http"
 
-	"github.com/go-kit/kit/log"
+	"github.com/libra9z/mskit/v4/log"
 )
 
 // TracerOption allows for functional options to our Zipkin tracing middleware.
@@ -32,9 +31,7 @@ func Tags(tags map[string]string) TracerOption {
 // extract / inject errors if they occur. Default is Noop.
 func Logger(logger log.Logger) TracerOption {
 	return func(o *TracerOptions) {
-		if logger != nil {
-			o.Logger = logger
-		}
+		o.Logger = logger
 	}
 }
 

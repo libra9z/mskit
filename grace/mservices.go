@@ -78,7 +78,7 @@ func (srv *MicroService) Serve(params ...string) (err error) {
 	if srv.GraceListener == nil {
 		l, err := srv.getListener(srv.Server.Addr)
 		if err != nil {
-			srv.logger.Log("error", err)
+			srv.logger.Error("error = %v", err)
 			return err
 		}
 
@@ -89,7 +89,7 @@ func (srv *MicroService) Serve(params ...string) (err error) {
 		srv.Server.Handler = srv.Router
 	}
 	err = srv.Server.Serve(srv.GraceListener)
-	srv.logger.Log("Waiting for connections to finish...: %v", syscall.Getpid())
+	srv.logger.Info("Waiting for connections to finish...: %v", syscall.Getpid())
 	srv.wg.Wait()
 	srv.state = StateTerminate
 	return
@@ -112,7 +112,7 @@ func (srv *MicroService) ListenAndServe(params ...string) (err error) {
 
 	l, err := srv.getListener(srv.Server.Addr)
 	if err != nil {
-		srv.logger.Log("error", err)
+		srv.logger.Error("error=%v", err)
 		return err
 	}
 
@@ -121,7 +121,7 @@ func (srv *MicroService) ListenAndServe(params ...string) (err error) {
 	if srv.isChild {
 		process, err := os.FindProcess(os.Getppid())
 		if err != nil {
-			srv.logger.Log("error", err)
+			srv.logger.Error("error=%v", err)
 			return err
 		}
 		err = process.Signal(syscall.SIGTERM)
@@ -129,7 +129,7 @@ func (srv *MicroService) ListenAndServe(params ...string) (err error) {
 			return err
 		}
 	}
-	srv.logger.Log("address", srv.Server.Addr, "pid", os.Getpid())
+	srv.logger.Info("address=%s,pid=%d", srv.Server.Addr, os.Getpid())
 	return srv.Serve(params...)
 }
 
@@ -168,7 +168,7 @@ func (srv *MicroService) ListenAndServeTLS(certFile, keyFile string, params ...s
 
 	l, err := srv.getListener(srv.Server.Addr)
 	if err != nil {
-		srv.logger.Log("error", err)
+		srv.logger.Error("error=%v", err)
 		return err
 	}
 
@@ -178,7 +178,7 @@ func (srv *MicroService) ListenAndServeTLS(certFile, keyFile string, params ...s
 	if srv.isChild {
 		process, err := os.FindProcess(os.Getppid())
 		if err != nil {
-			srv.logger.Log("error", err)
+			srv.logger.Error("error=%v", err)
 			return err
 		}
 		err = process.Signal(syscall.SIGTERM)
@@ -186,7 +186,7 @@ func (srv *MicroService) ListenAndServeTLS(certFile, keyFile string, params ...s
 			return err
 		}
 	}
-	srv.logger.Log("address", srv.Server.Addr, "pid", os.Getpid())
+	srv.logger.Info("address=%s,pid=%d", srv.Server.Addr, os.Getpid())
 	return srv.Serve(params...)
 }
 
@@ -217,7 +217,7 @@ func (srv *MicroService) ListenAndServeMutualTLS(certFile, keyFile, trustFile st
 	pool := x509.NewCertPool()
 	data, err := ioutil.ReadFile(trustFile)
 	if err != nil {
-		srv.logger.Log("error", err)
+		srv.logger.Error("error=%v", err)
 		return err
 	}
 	pool.AppendCertsFromPEM(data)
@@ -226,7 +226,7 @@ func (srv *MicroService) ListenAndServeMutualTLS(certFile, keyFile, trustFile st
 
 	l, err := srv.getListener(srv.Server.Addr)
 	if err != nil {
-		srv.logger.Log("error", err)
+		srv.logger.Error("error=%v", err)
 		return err
 	}
 
@@ -236,7 +236,7 @@ func (srv *MicroService) ListenAndServeMutualTLS(certFile, keyFile, trustFile st
 	if srv.isChild {
 		process, err := os.FindProcess(os.Getppid())
 		if err != nil {
-			srv.logger.Log("error", err)
+			srv.logger.Error("error=%v", err)
 			return err
 		}
 		err = process.Kill()
@@ -244,7 +244,7 @@ func (srv *MicroService) ListenAndServeMutualTLS(certFile, keyFile, trustFile st
 			return err
 		}
 	}
-	srv.logger.Log("address", srv.Server.Addr, "pid", os.Getpid())
+	srv.logger.Info("address=%s,pid=%d", srv.Server.Addr, os.Getpid())
 	return srv.Serve(params...)
 }
 
@@ -255,7 +255,7 @@ func (srv *MicroService) getListener(laddr string) (l net.Listener, err error) {
 		var ptrOffset uint
 		if len(socketPtrOffsetMap) > 0 {
 			ptrOffset = socketPtrOffsetMap[laddr]
-			srv.logger.Log("laddr", laddr, "ptr offset", socketPtrOffsetMap[laddr])
+			srv.logger.Info("laddr=%s,ptr offset=%d", laddr, socketPtrOffsetMap[laddr])
 		}
 
 		f := os.NewFile(uintptr(3+ptrOffset), "")
@@ -293,7 +293,7 @@ func (srv *MicroService) handleSignals() {
 			fmt.Println("Received SIGHUP. forking.", pid)
 			err := srv.fork()
 			if err != nil {
-				srv.logger.Log("error", err)
+				srv.logger.Error("error=%v", err)
 			}
 		case syscall.SIGINT:
 			fmt.Println("Received SIGINT.", pid)
@@ -343,7 +343,7 @@ func (srv *MicroService) shutdown() {
 func (srv *MicroService) serverTimeout(d time.Duration) {
 	defer func() {
 		if r := recover(); r != nil {
-			srv.logger.Log("error", r)
+			srv.logger.Error("error=%v", r)
 		}
 	}()
 	if srv.state != StateShuttingDown {
@@ -533,7 +533,7 @@ func (srv *MicroService) NewHttpHandler(withTracer bool, path string, r rest.Res
 
 	var after []rest.ServerResponseFunc
 	for _, f := range r.After() {
-		after = append(after, rest.ServerResponseFunc(f) )
+		after = append(after, rest.ServerResponseFunc(f))
 	}
 	options = append(options, rest.ServerAfter(after...))
 
@@ -631,7 +631,7 @@ func (srv *MicroService) NewHandlerFunc(withTracer bool, path string, handlerFun
 		//)
 		//
 		//handler.ServeHTTP(w,req)
-		handlerFunc(w,req)
+		handlerFunc(w, req)
 	}
 }
 

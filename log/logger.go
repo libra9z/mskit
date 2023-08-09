@@ -1,18 +1,46 @@
 package log
 
 import (
-	"github.com/go-kit/kit/log"
-	"os"
+	l4g "github.com/libra9z/log4go"
 )
 
-type Logger log.Logger
+type Logger struct {
+	log l4g.Logger
+}
 
 var Mslog Logger
 
 func init() {
-	//logger = kitlog.NewLogfmtLogger(os.Stdout)
-	// Logging domain.
-	Mslog = log.NewLogfmtLogger(os.Stdout)
-	Mslog = log.With(Mslog, "ts", log.DefaultTimestampUTC)
-	Mslog = log.With(Mslog, "caller", log.DefaultCaller)
+	Mslog = Logger{log: l4g.NewDefaultLogger(l4g.FINEST)}
+}
+
+func (l *Logger) Finest(arg0 interface{}, args ...interface{}) {
+	l.log.Finest(arg0, args)
+}
+
+func (l *Logger) Fine(arg0 interface{}, args ...interface{}) {
+	l.log.Fine(arg0, args)
+}
+
+func (l *Logger) Debug(arg0 interface{}, args ...interface{}) {
+	l.log.Debug(arg0, args)
+}
+
+func (l *Logger) Error(arg0 interface{}, args ...interface{}) {
+	l.log.Error(arg0, args)
+}
+
+func (l *Logger) Trace(arg0 interface{}, args ...interface{}) {
+	l.log.Trace(arg0, args)
+}
+
+func (l *Logger) Info(arg0 interface{}, args ...interface{}) {
+	l.log.Info(arg0, args)
+}
+func (l *Logger) Warn(arg0 interface{}, args ...interface{}) {
+	l.log.Warn(arg0, args)
+}
+
+func (l *Logger) Critical(arg0 interface{}, args ...interface{}) {
+	l.log.Critical(arg0, args)
 }
