@@ -172,11 +172,11 @@ func (s *RpcServer) Serve() error {
 	} else {
 		addr = s.ServiceAddr
 	}
-	s.logger.Info("rpcx_server_running_on: %s", addr)
+	s.logger.Info("[%s]rpcx_server_running_on: %s", s.BasePath, addr)
 	err := s.Server.Serve(s.Network, addr)
 
 	if err != nil {
-		s.logger.Error("cannot run_rpcx_server: %v", err)
+		s.logger.Error("[%s]cannot run_rpcx_server: %v", s.BasePath, err)
 		return err
 	}
 	return nil
