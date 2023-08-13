@@ -6,12 +6,12 @@ import (
 	"fmt"
 	_const "github.com/libra9z/mskit/v4/const"
 	"github.com/libra9z/mskit/v4/grace"
+	"github.com/libra9z/mskit/v4/log"
 	"github.com/libra9z/utils"
 	"github.com/nacos-group/nacos-sdk-go/clients"
 	"github.com/nacos-group/nacos-sdk-go/clients/naming_client"
 	"github.com/nacos-group/nacos-sdk-go/common/constant"
 	"github.com/nacos-group/nacos-sdk-go/vo"
-	"log"
 	"net"
 	"os"
 	"os/signal"
@@ -21,52 +21,50 @@ import (
 )
 
 type nacosRegister struct {
-	servers 		string
-	token			string
-	prefix 			string
-	name 			string
-	callback 		ServiceCallback
-	params 			map[string]interface{}
-	iclient         naming_client.INamingClient
-	addr 			string		//listen on address and port
+	servers  string
+	token    string
+	prefix   string
+	name     string
+	callback ServiceCallback
+	params   map[string]interface{}
+	iclient  naming_client.INamingClient
+	addr     string //listen on address and port
 }
-
 
 var _ Registar = (*nacosRegister)(nil)
 
-func NewNacosRegistar( name string, prefix string, addr, nacos, token string, callback ServiceCallback, params map[string]interface{})(Registar,error){
+func NewNacosRegistar(name string, prefix string, addr, nacos, token string, callback ServiceCallback, params map[string]interface{}) (Registar, error) {
 	n := &nacosRegister{
-		name: name,
-		prefix: prefix,
-		servers: nacos,
+		name:     name,
+		prefix:   prefix,
+		servers:  nacos,
 		callback: callback,
-		token: token,
-		params: params,
-		addr: addr,
+		token:    token,
+		params:   params,
+		addr:     addr,
 	}
-	return n,nil
+	return n, nil
 }
 
-
-func (n *nacosRegister)Register(app *grace.MicroService,schema string,address string,params map[string]interface{},callbacks ...ServiceCallback) {
+func (n *nacosRegister) Register(app *grace.MicroService, schema string, address string, params map[string]interface{}, callbacks ...ServiceCallback) {
 
 	if n.name == "" {
-		log.Fatal("name empty")
+		log.Mslog.Error("name empty")
 	}
 	if n.prefix == "" {
-		log.Fatal("prefix empty")
+		log.Mslog.Error("prefix empty")
 	}
 
 	//nacos address split
 	cs := strings.Split(n.servers, _const.ADDR_SPLIT_STRING)
 
 	if len(cs) <= 0 {
-		log.Fatal("no nacos address config")
+		log.Mslog.Error("no nacos address config")
 		return
 	}
 
 	n.params = params
-	if len(callbacks)>0 {
+	if len(callbacks) > 0 {
 		n.callback = callbacks[0]
 	}
 	n.addr = address
@@ -94,16 +92,16 @@ func (n *nacosRegister)Register(app *grace.MicroService,schema string,address st
 	prefixes := strings.Split(n.prefix, ",")
 	host, portstr, err := net.SplitHostPort(address)
 	if err != nil {
-		log.Fatal(err)
+		log.Mslog.Error(err)
 	}
 	port, err := strconv.Atoi(portstr)
 	if err != nil {
-		log.Fatal(err)
+		log.Mslog.Error(err)
 	}
 	go func() {
-		log.Printf("Listening on %s serving %s", address, n.prefix)
+		log.Mslog.Info("Listening on %s serving %s", address, n.prefix)
 		if err := n.callback(app, n.params); err != nil {
-			log.Fatal(err)
+			log.Mslog.Error(err)
 		}
 	}()
 
@@ -112,9 +110,8 @@ func (n *nacosRegister)Register(app *grace.MicroService,schema string,address st
 		tags = append(tags, "urlprefix-"+p)
 	}
 
-
 	clientConfig := GetClientConfig(n.params)
-	serverConfigs := GetServerConfig(n.servers,n.params)
+	serverConfigs := GetServerConfig(n.servers, n.params)
 
 	clusterName := ""
 	weight := 0.0
@@ -142,7 +139,7 @@ func (n *nacosRegister)Register(app *grace.MicroService,schema string,address st
 		Ephemeral:   true,
 	})
 	if !success {
-		log.Fatal("不能注册服务")
+		log.Mslog.Error("不能注册服务")
 		return
 	}
 
@@ -150,18 +147,17 @@ func (n *nacosRegister)Register(app *grace.MicroService,schema string,address st
 	signal.Notify(quit, os.Interrupt, os.Kill)
 	<-quit
 
-
 }
 
-func(n *nacosRegister)Deregister() {
+func (n *nacosRegister) Deregister() {
 	serviceID := n.name + "-" + n.addr
 	host, portstr, err := net.SplitHostPort(n.addr)
 	if err != nil {
-		log.Fatal(err)
+		log.Mslog.Error(err)
 	}
 	port, err := strconv.Atoi(portstr)
 	if err != nil {
-		log.Fatal(err)
+		log.Mslog.Error(err)
 	}
 	success, _ := n.iclient.DeregisterInstance(vo.DeregisterInstanceParam{
 		Ip:          host,
@@ -170,13 +166,13 @@ func(n *nacosRegister)Deregister() {
 		Ephemeral:   true,
 	})
 
-	log.Printf("Deregistered service %q in consul %v", n.name,success)
+	log.Mslog.Info("Deregistered service %q in consul %v", n.name, success)
 }
 
-func (n *nacosRegister)RegisterFromMemory(app *grace.MicroService,schema string,buf *bytes.Buffer,exparams map[string]interface{}, callbacks ...ServiceCallback) {
+func (n *nacosRegister) RegisterFromMemory(app *grace.MicroService, schema string, buf *bytes.Buffer, exparams map[string]interface{}, callbacks ...ServiceCallback) {
 
 	if buf == nil {
-		log.Fatal("内存中没有默认配置。" )
+		log.Mslog.Error("内存中没有默认配置。")
 		return
 	}
 	var data map[string]interface{}
@@ -187,7 +183,7 @@ func (n *nacosRegister)RegisterFromMemory(app *grace.MicroService,schema string,
 	err := json.Unmarshal(body, &data)
 
 	if err != nil {
-		log.Fatal("json:" + err.Error())
+		log.Mslog.Error("json:" + err.Error())
 		return
 	}
 
@@ -195,7 +191,7 @@ func (n *nacosRegister)RegisterFromMemory(app *grace.MicroService,schema string,
 	cs := strings.Split(n.servers, _const.ADDR_SPLIT_STRING)
 
 	if len(cs) <= 0 {
-		log.Fatal("no consul address config")
+		log.Mslog.Error("no consul address config")
 		return
 	}
 
@@ -216,19 +212,19 @@ func (n *nacosRegister)RegisterFromMemory(app *grace.MicroService,schema string,
 		cps["trustfile"] = vs["trustfile"]
 	}
 
-	var de bool =false
+	var de bool = false
 	if data["docker_enable"] != nil {
 		cps["docker_enable"] = data["docker_enable"]
 		de = data["docker_enable"].(bool)
 	}
 	switch schema {
-	case "http","https":
+	case "http", "https":
 		t := reflect.ValueOf(p)
 		switch t.Kind() {
 		case reflect.Slice:
 			ps := p.([]interface{})
 			if len(ps) != len(callbacks) {
-				log.Fatal("服务数量与回调函数数量不匹配。")
+				log.Mslog.Error("服务数量与回调函数数量不匹配。")
 				return
 			}
 			for i, vs := range ps {
@@ -243,7 +239,7 @@ func (n *nacosRegister)RegisterFromMemory(app *grace.MicroService,schema string,
 			//select {}
 		case reflect.Map:
 			if len(callbacks) < 1 {
-				log.Fatal("没有指定回调函数。")
+				log.Mslog.Error("没有指定回调函数。")
 				return
 			}
 			params = p.(map[string]interface{})
@@ -282,7 +278,7 @@ func (n *nacosRegister)RegisterFromMemory(app *grace.MicroService,schema string,
 		case reflect.Slice:
 			ps := p.([]interface{})
 			if len(ps) != len(callbacks) {
-				log.Fatal("服务数量与回调函数数量不匹配。")
+				log.Mslog.Error("服务数量与回调函数数量不匹配。")
 				return
 			}
 			for i, vs := range ps {
@@ -297,22 +293,22 @@ func (n *nacosRegister)RegisterFromMemory(app *grace.MicroService,schema string,
 			//select {}
 		case reflect.Map:
 			if len(callbacks) < 1 {
-				log.Fatal("没有指定回调函数。")
+				log.Mslog.Error("没有指定回调函数。")
 				return
 			}
 			params = p.(map[string]interface{})
 			nacosRegisterService(app, schema, n.servers, n.token, params, callbacks[0], cps)
 		}
 	default:
-		log.Fatal("没有配置参数。")
+		log.Mslog.Error("没有配置参数。")
 		panic("没有配置参数")
 	}
 
 }
 
-func (n *nacosRegister)RegisterWithConf(app *grace.MicroService,schema string,fname string, callbacks ...ServiceCallback) {
+func (n *nacosRegister) RegisterWithConf(app *grace.MicroService, schema string, fname string, callbacks ...ServiceCallback) {
 	if fname == "" {
-		log.Fatal("没有指定配置文件。\n")
+		log.Mslog.Error("没有指定配置文件。\n")
 		return
 	}
 
@@ -320,13 +316,13 @@ func (n *nacosRegister)RegisterWithConf(app *grace.MicroService,schema string,fn
 
 	buf := bytes.NewBuffer(body)
 
-	n.RegisterFromMemory(app,schema,buf,nil,callbacks...)
+	n.RegisterFromMemory(app, schema, buf, nil, callbacks...)
 
 }
 
-func (n *nacosRegister)RegisterFile(app *grace.MicroService,schema string,fname string, callbacks ...ServiceCallback) {
+func (n *nacosRegister) RegisterFile(app *grace.MicroService, schema string, fname string, callbacks ...ServiceCallback) {
 	if fname == "" {
-		log.Fatal("没有指定配置文件。\n")
+		log.Mslog.Error("没有指定配置文件。\n")
 		return
 	}
 
@@ -334,7 +330,7 @@ func (n *nacosRegister)RegisterFile(app *grace.MicroService,schema string,fname 
 
 	buf := bytes.NewBuffer(body)
 
-	n.RegisterFromMemory(app,schema,buf,nil,callbacks...)
+	n.RegisterFromMemory(app, schema, buf, nil, callbacks...)
 
 }
 
@@ -343,46 +339,45 @@ func GetClientConfig(params map[string]interface{}) constant.ClientConfig {
 	if params != nil {
 		if params["timeout"] != nil {
 			clientConfig.TimeoutMs = uint64(utils.Convert2Int64(params["timeout"]))
-		}else{
+		} else {
 			clientConfig.TimeoutMs = 10 * 1000
 		}
 		if params["listeninterval"] != nil {
 			clientConfig.ListenInterval = uint64(utils.Convert2Int64(params["listeninterval"]))
-		}else{
+		} else {
 			clientConfig.ListenInterval = 30 * 1000
 		}
 
 		if params["beatinterval"] != nil {
 			clientConfig.BeatInterval = utils.Convert2Int64(params["timeout"])
-		}else {
+		} else {
 			clientConfig.BeatInterval = 5 * 1000
 		}
 		if params["logdir"] != nil {
 			clientConfig.LogDir = utils.ConvertToString(params["logdir"])
-		}else {
+		} else {
 			clientConfig.LogDir = "/nacos/logs"
 		}
 		if params["cachedir"] != nil {
 			clientConfig.CacheDir = utils.ConvertToString(params["cachedir"])
-		}else {
+		} else {
 			clientConfig.CacheDir = "/nacos/cache"
 		}
 
-	}else{
+	} else {
 		clientConfig = constant.ClientConfig{
 			TimeoutMs:      10 * 1000,
 			ListenInterval: 30 * 1000,
 			BeatInterval:   5 * 1000,
-			LogDir: "/nacos/logs",
-			CacheDir: "/nacos/cache",
+			LogDir:         "/nacos/logs",
+			CacheDir:       "/nacos/cache",
 		}
 	}
 
 	return clientConfig
 }
 
-
-func GetServerConfig(nacos string,params map[string]interface{}) []constant.ServerConfig {
+func GetServerConfig(nacos string, params map[string]interface{}) []constant.ServerConfig {
 	var serverConfig []constant.ServerConfig
 
 	ss := strings.Split(nacos, _const.ADDR_SPLIT_STRING)
@@ -390,24 +385,23 @@ func GetServerConfig(nacos string,params map[string]interface{}) []constant.Serv
 	ContextPath := ""
 	if params != nil && params["contextpath"] != nil {
 		ContextPath = utils.ConvertToString(params["contextpath"])
-	}else{
+	} else {
 		ContextPath = "/nacos"
 	}
 
-	for _,v := range ss {
+	for _, v := range ss {
 		var c constant.ServerConfig
-		s2 := strings.Split(v,":")
+		s2 := strings.Split(v, ":")
 		c.IpAddr = s2[0]
-		if len(s2)>1 {
+		if len(s2) > 1 {
 			c.Port = uint64(utils.Convert2Int(s2[1]))
 		}
 		c.ContextPath = ContextPath
-		serverConfig = append(serverConfig,c)
+		serverConfig = append(serverConfig, c)
 	}
 
-	return  serverConfig
+	return serverConfig
 }
-
 
 func nacosRegisterService(app *grace.MicroService, schema, nacos, token string, params map[string]interface{}, callback ServiceCallback, datas map[string]interface{}) {
 	var name, prefix, host, addr string
@@ -440,7 +434,7 @@ func nacosRegisterService(app *grace.MicroService, schema, nacos, token string, 
 	}
 
 	if port == 0 {
-		log.Fatal("没有指定端口号。")
+		log.Mslog.Error("没有指定端口号。")
 		return
 	}
 
@@ -450,12 +444,13 @@ func nacosRegisterService(app *grace.MicroService, schema, nacos, token string, 
 		if de {
 			datas["host"] = ""
 
-		}else{
+		} else {
 			datas["host"] = host
 		}
-		fmt.Printf("Listening on %v:%d serving %s\n", datas["host"], po, prefix)
+		sp := fmt.Sprintf("Listening on %v:%d serving %s\n", datas["host"], po, prefix)
+		log.Mslog.Info("%s", sp)
 		if err := callback(app, datas); err != nil {
-			log.Fatal(err)
+			log.Mslog.Error(err)
 		}
 	}(port)
 
@@ -471,9 +466,8 @@ func nacosRegisterService(app *grace.MicroService, schema, nacos, token string, 
 		serviceID = name + "-" + addr
 	}
 
-
 	clientConfig := GetClientConfig(params)
-	serverConfigs := GetServerConfig(nacos,params)
+	serverConfigs := GetServerConfig(nacos, params)
 
 	clusterName := ""
 	weight := 0.0
@@ -489,7 +483,7 @@ func nacosRegisterService(app *grace.MicroService, schema, nacos, token string, 
 		"clientConfig":  clientConfig,
 	})
 	if err != nil {
-		log.Fatal("不能获取nacos的nameClient：",err)
+		log.Mslog.Error("不能获取nacos的nameClient：", err)
 		return
 	}
 	grpname := ""
@@ -503,13 +497,13 @@ func nacosRegisterService(app *grace.MicroService, schema, nacos, token string, 
 		ServiceName: serviceID,
 		Weight:      weight,
 		ClusterName: clusterName,
-		GroupName: grpname,
+		GroupName:   grpname,
 		Enable:      true,
 		Healthy:     true,
 		Ephemeral:   true,
 	})
 	if !success {
-		fmt.Printf("不能注册服务: %v\n",err.Error())
+		fmt.Printf("不能注册服务: %v\n", err.Error())
 		return
 	}
 
@@ -524,7 +518,6 @@ func nacosRegisterService(app *grace.MicroService, schema, nacos, token string, 
 		Ephemeral:   true,
 	})
 
-
-	log.Printf("Deregistered service %q in consul", name)
+	log.Mslog.Info("Deregistered service %q in consul", name)
 
 }

@@ -171,6 +171,7 @@ func (c *consulRegister) Register(app *grace.MicroService, schema string, addres
 		mslog.Mslog.Critical(err)
 	}
 	go func() {
+
 		mslog.Mslog.Info("Listening on %s serving %s", c.addr, c.prefix)
 		if err := c.callback(app, c.params); err != nil {
 			mslog.Mslog.Critical(err)
@@ -455,7 +456,9 @@ func registerService(app *grace.MicroService, schema, consul, token string, para
 		} else {
 			datas["host"] = host
 		}
-		fmt.Printf("Listening on %v:%d serving %s\n", datas["host"], po, prefix)
+		sp := fmt.Sprintf("Listening on %v:%d serving %s\n", datas["host"], po, prefix)
+		mslog.Mslog.Info("%s", sp)
+
 		if err := callback(app, datas); err != nil {
 			mslog.Mslog.Critical(err)
 		}
