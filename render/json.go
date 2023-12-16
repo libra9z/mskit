@@ -7,11 +7,10 @@ package render
 import (
 	"bytes"
 	"fmt"
-	"html/template"
-	"net/http"
-
 	"github.com/libra9z/mskit/v4/internal/bytesconv"
 	"github.com/libra9z/mskit/v4/internal/json"
+	"html/template"
+	"net/http"
 )
 
 // JSON contains the given interface object.
@@ -72,8 +71,14 @@ func WriteJSON(w http.ResponseWriter, obj interface{}) error {
 	if err != nil {
 		return err
 	}
+
+	//w.Header().Set("Content-Length", "-1")
+	//w.WriteHeader(http.StatusOK)
 	_, err = w.Write(jsonBytes)
-	return err
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 // Render (IndentedJSON) marshals the given interface object and writes it with custom ContentType.

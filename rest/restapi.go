@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"strings"
 
@@ -132,7 +132,7 @@ func (c *RestApi) DecodeRequest(ctx context.Context, r *http.Request, w http.Res
 
 	c.Request = r
 
-	req := Mcontext{}
+	req := &Mcontext{}
 	req.Ctx = ctx
 	req.reset()
 	req.Method = r.Method
@@ -174,7 +174,7 @@ func (c *RestApi) DecodeRequest(ctx context.Context, r *http.Request, w http.Res
 	req.Request = r
 
 	if !strings.Contains(r.Header.Get("Content-Type"), "multipart/form-data") {
-		req.Body, err = ioutil.ReadAll(r.Body)
+		req.Body, err = io.ReadAll(r.Body)
 
 		if strings.Contains(r.Header.Get("Content-Type"), "application/json") {
 			req.ContentType = CONTENT_TYPE_JSON
@@ -188,10 +188,11 @@ func (c *RestApi) DecodeRequest(ctx context.Context, r *http.Request, w http.Res
 		req.ContentType = CONTENT_TYPE_MULTIFORM
 	}
 
-	c.mc, _ = c.Prepare(&req)
-	c.mc.writermem.reset(w)
+	mc, _ := c.Prepare(req)
+	mc.writermem.reset(w)
+	c.mc = mc
 
-	return c.mc, err
+	return mc, err
 }
 
 func (c *RestApi) Prepare(r *Mcontext) (*Mcontext, error) {
@@ -206,10 +207,6 @@ func (c *RestApi) Finish(w http.ResponseWriter, response interface{}) error {
 	if w == nil {
 		return errors.New("writer is nil ")
 	}
-	w.Header().Set("Content-Type", MIMEJSON)
-	w.Header().Add("Access-Control-Allow-Origin", "*")
-	w.Header().Add("Access-Control-Allow-Headers", "Content-Type,Origin,Accept,Content-Range,Content-Description,Content-Disposition")
-	w.Header().Add("Access-Control-Allow-Methods", "PUT,GET,POST,DELETE,OPTIONS")
 	err := json.NewEncoder(w).Encode(response)
 	return err
 }

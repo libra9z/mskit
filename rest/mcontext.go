@@ -48,7 +48,7 @@ type Mcontext struct {
 	RemoteAddr   string
 	Request      *http.Request
 	ContentType  int
-	Ctx 		 context.Context
+	Ctx          context.Context
 	Userid       string //admin user prefix with 'a' ,user table prefix with 'u'
 	Custid       string //客户标识，对应orgid
 	AuthedOrgids []int64
@@ -57,8 +57,8 @@ type Mcontext struct {
 	writermem        responseWriter
 	Writer           ResponseWriter
 	useContextWriter bool
-	EnableCors	     bool
-	UseRender     	 bool
+	EnableCors       bool
+	UseRender        bool
 	index            int8
 
 	// Errors is a list of errors attached to all the handlers/middlewares who used this context.
@@ -288,10 +288,11 @@ func (c *Mcontext) GetStringMapStringSlice(key string) (smss map[string][]string
 
 // Param returns the value of the URL param.
 // It is a shortcut for c.Params.ByName(key)
-//     router.GET("/user/:id", func(c *gin.Context) {
-//         // a GET Context to /user/john
-//         id := c.Param("id") // id == "john"
-//     })
+//
+//	router.GET("/user/:id", func(c *gin.Context) {
+//	    // a GET Context to /user/john
+//	    id := c.Param("id") // id == "john"
+//	})
 func (c *Mcontext) Param(key string) string {
 	return c.Params.ByName(key)
 }
@@ -299,11 +300,12 @@ func (c *Mcontext) Param(key string) string {
 // Query returns the keyed url query value if it exists,
 // otherwise it returns an empty string `("")`.
 // It is shortcut for `c.Context.URL.Query().Get(key)`
-//     GET /path?id=1234&name=Manu&value=
-// 	   c.Query("id") == "1234"
-// 	   c.Query("name") == "Manu"
-// 	   c.Query("value") == ""
-// 	   c.Query("wtf") == ""
+//
+//	    GET /path?id=1234&name=Manu&value=
+//		   c.Query("id") == "1234"
+//		   c.Query("name") == "Manu"
+//		   c.Query("value") == ""
+//		   c.Query("wtf") == ""
 func (c *Mcontext) Query(key string) string {
 	value, _ := c.GetQuery(key)
 	return value
@@ -312,10 +314,11 @@ func (c *Mcontext) Query(key string) string {
 // DefaultQuery returns the keyed url query value if it exists,
 // otherwise it returns the specified defaultValue string.
 // See: Query() and GetQuery() for further information.
-//     GET /?name=Manu&lastname=
-//     c.DefaultQuery("name", "unknown") == "Manu"
-//     c.DefaultQuery("id", "none") == "none"
-//     c.DefaultQuery("lastname", "none") == ""
+//
+//	GET /?name=Manu&lastname=
+//	c.DefaultQuery("name", "unknown") == "Manu"
+//	c.DefaultQuery("id", "none") == "none"
+//	c.DefaultQuery("lastname", "none") == ""
 func (c *Mcontext) DefaultQuery(key, defaultValue string) string {
 	if value, ok := c.GetQuery(key); ok {
 		return value
@@ -327,10 +330,11 @@ func (c *Mcontext) DefaultQuery(key, defaultValue string) string {
 // if it exists `(value, true)` (even when the value is an empty string),
 // otherwise it returns `("", false)`.
 // It is shortcut for `c.Context.URL.Query().Get(key)`
-//     GET /?name=Manu&lastname=
-//     ("Manu", true) == c.GetQuery("name")
-//     ("", false) == c.GetQuery("id")
-//     ("", true) == c.GetQuery("lastname")
+//
+//	GET /?name=Manu&lastname=
+//	("Manu", true) == c.GetQuery("name")
+//	("", false) == c.GetQuery("id")
+//	("", true) == c.GetQuery("lastname")
 func (c *Mcontext) GetQuery(key string) (string, bool) {
 	if values, ok := c.GetQueryArray(key); ok {
 		return values[0], ok
@@ -428,8 +432,10 @@ func (c *Mcontext) AbortWithError(code int, err error) *me.Error {
 
 // Bind checks the Content-Type to select a binding engine automatically,
 // Depending the "Content-Type" header different bindings are used:
-//     "application/json" --> JSON binding
-//     "application/xml"  --> XML binding
+//
+//	"application/json" --> JSON binding
+//	"application/xml"  --> XML binding
+//
 // otherwise --> returns an error.
 // It parses the request's body as JSON if Content-Type == "application/json" using JSON or XML as a JSON input.
 // It decodes the json payload into the struct specified as a pointer.
@@ -487,8 +493,10 @@ func (c *Mcontext) MustBindWith(obj interface{}, b binding.Binding) error {
 
 // ShouldBind checks the Content-Type to select a binding engine automatically,
 // Depending the "Content-Type" header different bindings are used:
-//     "application/json" --> JSON binding
-//     "application/xml"  --> XML binding
+//
+//	"application/json" --> JSON binding
+//	"application/xml"  --> XML binding
+//
 // otherwise --> returns an error
 // It parses the request's body as JSON if Content-Type == "application/json" using JSON or XML as a JSON input.
 // It decodes the json payload into the struct specified as a pointer.
@@ -619,7 +627,7 @@ func (c *Mcontext) GetHeader(key string) string {
 
 // GetRawData return stream data.
 func (c *Mcontext) GetRawData() ([]byte, error) {
-	return ioutil.ReadAll(c.Request.Body)
+	return io.ReadAll(c.Request.Body)
 }
 
 // SetSameSite with cookie
