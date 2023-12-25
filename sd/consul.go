@@ -627,7 +627,7 @@ func registerService(app *grace.MicroService, schema, consul, token string, para
 
 	reg.Register()
 
-	mslog.Mslog.Info("Registered service %q in consul with tags %q", name, strings.Join(tags, ","))
+	mslog.Mslog.Info("%s", fmt.Sprintf("Registered service %q in consul with tags: %q", name, strings.Join(tags, ",")))
 
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, os.Interrupt, os.Kill)
