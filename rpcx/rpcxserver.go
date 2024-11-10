@@ -219,7 +219,7 @@ func (s *RpcServer) GetMethodWithTracer(name string) (Method, trace.Tracer) {
 
 type JSONRpc struct{}
 
-func (jr *JSONRpc) Services(ctx context.Context, req *RpcRequest, ret *RpcResponse) error {
+func (jr *JSONRpc) Services(ctx context.Context, s *RpcServer, req *RpcRequest, ret *RpcResponse) error {
 
 	var err error
 	if req == nil || ret == nil {
@@ -254,9 +254,17 @@ func (jr *JSONRpc) Services(ctx context.Context, req *RpcRequest, ret *RpcRespon
 			var function Method
 			var tracer trace.Tracer
 			if req.WithTracer {
-				function, tracer = RpcGetMethodWithTracer(method)
+				if s == nil {
+					function, tracer = RpcGetMethodWithTracer(method)
+				} else {
+					function, tracer = s.GetMethodWithTracer(method)
+				}
 			} else {
-				function = RpcGetMethodByName(method)
+				if s == nil {
+					function = RpcGetMethodByName(method)
+				} else {
+					function = s.GetMethodByName(method)
+				}
 			}
 			if function != nil {
 				result, err = function(ctx, tracer, req.Appid, req.SiteId, req.Token, vs["params"])
