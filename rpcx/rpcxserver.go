@@ -217,9 +217,11 @@ func (s *RpcServer) GetMethodWithTracer(name string) (Method, trace.Tracer) {
 	return nil, nil
 }
 
-type JSONRpc struct{}
+type JSONRpc struct {
+	s *RpcServer
+}
 
-func (jr *JSONRpc) Services(ctx context.Context, s *RpcServer, req *RpcRequest, ret *RpcResponse) error {
+func (jr *JSONRpc) Services(ctx context.Context, req *RpcRequest, ret *RpcResponse) error {
 
 	var err error
 	if req == nil || ret == nil {
@@ -254,16 +256,16 @@ func (jr *JSONRpc) Services(ctx context.Context, s *RpcServer, req *RpcRequest, 
 			var function Method
 			var tracer trace.Tracer
 			if req.WithTracer {
-				if s == nil {
+				if jr.s == nil {
 					function, tracer = RpcGetMethodWithTracer(method)
 				} else {
-					function, tracer = s.GetMethodWithTracer(method)
+					function, tracer = jr.s.GetMethodWithTracer(method)
 				}
 			} else {
-				if s == nil {
+				if jr.s == nil {
 					function = RpcGetMethodByName(method)
 				} else {
-					function = s.GetMethodByName(method)
+					function = jr.s.GetMethodByName(method)
 				}
 			}
 			if function != nil {
@@ -300,6 +302,10 @@ func (jr *JSONRpc) Services(ctx context.Context, s *RpcServer, req *RpcRequest, 
 	ret.Ret = string(r)
 
 	return nil
+}
+
+func (jr *JSONRpc) SetRpcServer(s *RpcServer) {
+	jr.s = s
 }
 
 // v2
