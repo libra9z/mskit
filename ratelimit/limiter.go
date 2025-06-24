@@ -1,6 +1,7 @@
 package ratelimit
 
 import (
+	"context"
 	"github.com/libra9z/mskit/v4/rest"
 	"go.uber.org/ratelimit"
 	"net"
@@ -64,8 +65,9 @@ func cleanupVisitors() {
 }
 
 func Limit(ra int) rest.MskitFunc {
-	return func(r *rest.Mcontext, w http.ResponseWriter) error {
-		ip, _, _ := net.SplitHostPort(r.RemoteAddr)
+	return func(r context.Context, w http.ResponseWriter) error {
+		mc := r.Value(rest.DefaultContextKey).(*rest.Mcontext)
+		ip, _, _ := net.SplitHostPort(mc.RemoteAddr)
 		limiter := getVisitor(ra, ip)
 		if limiter != nil {
 			limiter.Take()

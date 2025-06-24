@@ -17,7 +17,7 @@ var _ RestService = (*RestApi)(nil)
 const DefaultContextKey = "MskitABContext"
 
 // HandlerFunc defines the handler used by gin middleware as return value.
-type MskitFunc func(*Mcontext, http.ResponseWriter) error
+type MskitFunc func(context.Context, http.ResponseWriter) error
 
 // HandlersChain defines a HandlerFunc array.
 type BeforesChain []MskitFunc
@@ -42,11 +42,9 @@ func (c AftersChain) Last() MskitFunc {
 }
 
 type RestApi struct {
-	Request *http.Request
-	Router  *httprouter.Router
-	after   AftersChain
-	before  BeforesChain
-	mc      *Mcontext
+	Router *httprouter.Router
+	after  AftersChain
+	before BeforesChain
 }
 
 func (c *RestApi) After() AftersChain {
@@ -63,14 +61,6 @@ func (c *RestApi) AfterUse(handlerFunc ...MskitFunc) {
 
 func (c *RestApi) BeforeUse(handlerFunc ...MskitFunc) {
 	c.before = append(c.before, handlerFunc...)
-}
-
-func (c *RestApi) Mcontext() *Mcontext {
-	return c.mc
-}
-
-func (c *RestApi) SetMcontext(mc *Mcontext) {
-	c.mc = mc
 }
 
 // Get adds a request function to handle GET request.
@@ -130,10 +120,7 @@ proxy_set_header Remote_addr $remote_addr;
 */
 func (c *RestApi) DecodeRequest(ctx context.Context, r *http.Request, w http.ResponseWriter) (request interface{}, err error) {
 
-	c.Request = r
-
 	req := &Mcontext{}
-	req.Ctx = ctx
 	req.reset()
 	req.Method = r.Method
 	//req.writermem.reset(w)
@@ -190,8 +177,8 @@ func (c *RestApi) DecodeRequest(ctx context.Context, r *http.Request, w http.Res
 
 	mc, _ := c.Prepare(req)
 	mc.writermem.reset(w)
-	c.mc = mc
 
+	ctx = context.WithValue(ctx, DefaultContextKey, mc)
 	return mc, err
 }
 
@@ -216,19 +203,19 @@ func (c *RestApi) EncodeResponse(ctx context.Context, w http.ResponseWriter, res
 
 	var err error
 	//w = c.mc.writermem.ResponseWriter
-
+	mc := ctx.Value(DefaultContextKey).(*Mcontext)
 	if response == nil {
 		response = ""
 	}
-	if !c.mc.useContextWriter && !c.mc.UseRender {
+	if mc.useContextWriter && mc.UseRender {
 		err = c.Finish(w, response)
 	} else {
-		if !c.mc.UseRender {
-			switch c.mc.ContentType {
+		if !mc.UseRender {
+			switch mc.ContentType {
 			case CONTENT_TYPE_JSON:
-				c.mc.JSON(http.StatusOK, response)
+				mc.JSON(http.StatusOK, response)
 			case CONTENT_TYPE_XML:
-				c.mc.XML(http.StatusOK, response)
+				mc.XML(http.StatusOK, response)
 			}
 		}
 	}

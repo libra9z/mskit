@@ -119,7 +119,7 @@ func (t *openTelemetry) HTTPServerTrace(operatename string) rest.ServerOption {
 	var span otrace.Span
 
 	serverBefore := rest.ServerBefore(
-		func(c *rest.Mcontext, w http.ResponseWriter) error {
+		func(c context.Context, w http.ResponseWriter) error {
 			var name string
 
 			if t.Name != "" {
@@ -129,13 +129,13 @@ func (t *openTelemetry) HTTPServerTrace(operatename string) rest.ServerOption {
 			}
 
 			tr := t.tp.Tracer(t.Name)
-			c.Ctx, span = tr.Start(c.Ctx, name, otrace.WithSpanKind(otrace.SpanKindServer))
+			c, span = tr.Start(c, name, otrace.WithSpanKind(otrace.SpanKindServer))
 			return nil
 		},
 	)
 
 	serverAfter := rest.ServerAfter(
-		func(c *rest.Mcontext, _ http.ResponseWriter) error {
+		func(c context.Context, _ http.ResponseWriter) error {
 			span.End()
 			return nil
 		},

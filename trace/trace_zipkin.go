@@ -3,6 +3,10 @@ package trace
 import (
 	"context"
 	"errors"
+	"net/http"
+	"os"
+	"strconv"
+
 	"github.com/libra9z/mskit/v4/log"
 	"github.com/libra9z/mskit/v4/rest"
 	"github.com/opentracing/opentracing-go"
@@ -12,9 +16,6 @@ import (
 	"github.com/openzipkin/zipkin-go/propagation/b3"
 	"github.com/openzipkin/zipkin-go/reporter"
 	rhttp "github.com/openzipkin/zipkin-go/reporter/http"
-	"net/http"
-	"os"
-	"strconv"
 )
 
 const (
@@ -94,7 +95,7 @@ func (t *zipkinTracer) GetTracer() (string, interface{}) {
 
 func (t *zipkinTracer) HTTPServerTrace(operatename string) rest.ServerOption {
 	serverBefore := rest.ServerBefore(
-		func(c *rest.Mcontext, w http.ResponseWriter) error {
+		func(c context.Context, w http.ResponseWriter) error {
 			var (
 				spanContext model.SpanContext
 				name        string
@@ -105,12 +106,12 @@ func (t *zipkinTracer) HTTPServerTrace(operatename string) rest.ServerOption {
 			} else {
 				name = operatename
 			}
-
+			mc := c.Value(rest.DefaultContextKey).(*rest.Mcontext)
 			if t.Propagate {
-				spanContext = t.zipkinTracer.Extract(b3.ExtractHTTP(c.Request))
+				spanContext = t.zipkinTracer.Extract(b3.ExtractHTTP(mc.Request))
 
 				if spanContext.Sampled == nil && t.RequestSampler != nil {
-					sample := t.RequestSampler(c.Request)
+					sample := t.RequestSampler(mc.Request)
 					spanContext.Sampled = &sample
 				}
 
@@ -120,8 +121,8 @@ func (t *zipkinTracer) HTTPServerTrace(operatename string) rest.ServerOption {
 			}
 
 			tags := map[string]string{
-				string(zipkin.TagHTTPMethod): c.Request.Method,
-				string(zipkin.TagHTTPPath):   c.Request.URL.Path,
+				string(zipkin.TagHTTPMethod): mc.Request.Method,
+				string(zipkin.TagHTTPPath):   mc.Request.URL.Path,
 			}
 
 			span := t.zipkinTracer.StartSpan(
@@ -133,14 +134,14 @@ func (t *zipkinTracer) HTTPServerTrace(operatename string) rest.ServerOption {
 				zipkin.FlushOnFinish(t.flushOnFinish),
 			)
 
-			c.Ctx = zipkin.NewContext(c.Ctx, span)
+			c = zipkin.NewContext(c, span)
 			return nil
 		},
 	)
 
 	serverAfter := rest.ServerAfter(
-		func(c *rest.Mcontext, _ http.ResponseWriter) error {
-			if span := zipkin.SpanFromContext(c.Ctx); span != nil {
+		func(c context.Context, _ http.ResponseWriter) error {
+			if span := zipkin.SpanFromContext(c); span != nil {
 				span.Finish()
 			}
 

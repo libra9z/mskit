@@ -1,10 +1,8 @@
 package rest
 
 import (
-	"context"
 	"errors"
 	"fmt"
-	"github.com/libra9z/mskit/v4/render"
 	"io"
 	"io/ioutil"
 	"math"
@@ -13,6 +11,8 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/libra9z/mskit/v4/render"
 
 	"github.com/libra9z/httprouter"
 	"github.com/libra9z/mskit/v4/binding"
@@ -48,7 +48,6 @@ type Mcontext struct {
 	RemoteAddr   string
 	Request      *http.Request
 	ContentType  int
-	Ctx          context.Context
 	Userid       string //admin user prefix with 'a' ,user table prefix with 'u'
 	Custid       string //客户标识，对应orgid
 	AuthedOrgids []int64

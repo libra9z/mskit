@@ -22,6 +22,7 @@ var (
 	// ErrMaxSizeExceeded protects the Concat method.
 	ErrMaxSizeExceeded = errors.New("result exceeds maximum size")
 )
+
 func JsonErrorEncoder(ctx context.Context, err error, w http.ResponseWriter) {
 	code := http.StatusInternalServerError
 	msg := err.Error()
@@ -34,7 +35,6 @@ func JsonErrorEncoder(ctx context.Context, err error, w http.ResponseWriter) {
 	w.WriteHeader(code)
 	json.NewEncoder(w).Encode(errorWrapper{Error: msg})
 }
-
 
 type RestService interface {
 	Get(context.Context, *Mcontext) (interface{}, error)
@@ -49,17 +49,15 @@ type RestService interface {
 	Prepare(r *Mcontext) (*Mcontext, error)
 	Finish(w http.ResponseWriter, response interface{}) error
 
-	After() 	AftersChain
-	Before() 	BeforesChain
-	AfterUse( handlerFunc ...MskitFunc )
-	BeforeUse( handlerFunc ...MskitFunc )
-	Mcontext() *Mcontext
-	SetMcontext(*Mcontext)
+	After() AftersChain
+	Before() BeforesChain
+	AfterUse(handlerFunc ...MskitFunc)
+	BeforeUse(handlerFunc ...MskitFunc)
 
 	//response relate interface
 	SetRouter(router *httprouter.Router)
 	GetErrorResponse() interface{}
-	DecodeRequest(context.Context, *http.Request,http.ResponseWriter) (request interface{}, err error)
+	DecodeRequest(context.Context, *http.Request, http.ResponseWriter) (request interface{}, err error)
 	EncodeResponse(context.Context, http.ResponseWriter, interface{}) error
-	ErrorEncoder( context.Context, error, http.ResponseWriter)
+	ErrorEncoder(context.Context, error, http.ResponseWriter)
 }
