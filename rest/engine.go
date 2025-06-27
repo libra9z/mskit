@@ -91,7 +91,7 @@ func ServerFinalizer(f ...ServerFinalizerFunc) ServerOption {
 
 // ServeHTTP implements http.Handler.
 func (s Engine) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context()
+	ctx := context.Background()
 
 	if len(s.finalizer) > 0 {
 		iw := &interceptingWriter{w, http.StatusOK, 0}

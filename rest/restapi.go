@@ -178,8 +178,8 @@ func (c *RestApi) DecodeRequest(ctx context.Context, r *http.Request, w http.Res
 	mc, _ := c.Prepare(req)
 	mc.writermem.reset(w)
 
-	cr := context.WithValue(r.Context(), DefaultContextKey, mc)
-	r = r.WithContext(cr)
+	ctx = context.WithValue(ctx, DefaultContextKey, mc)
+
 	return mc, err
 }
 
