@@ -205,18 +205,19 @@ func (c *RestApi) EncodeResponse(ctx context.Context, w http.ResponseWriter, res
 	var err error
 	//w = c.mc.writermem.ResponseWriter
 	mc := ctx.Value(DefaultContextKey).(*Mcontext)
-	//if response == nil {
-	//	response = ""
-	//}
-	if mc.useContextWriter && mc.UseRender {
-		err = c.Finish(w, response)
+	if response == nil {
+		response = ""
 	} else {
-		if !mc.UseRender {
-			switch mc.ContentType {
-			case CONTENT_TYPE_JSON:
-				mc.JSON(http.StatusOK, response)
-			case CONTENT_TYPE_XML:
-				mc.XML(http.StatusOK, response)
+		if mc.useContextWriter && mc.UseRender {
+			err = c.Finish(w, response)
+		} else {
+			if !mc.UseRender {
+				switch mc.ContentType {
+				case CONTENT_TYPE_JSON:
+					mc.JSON(http.StatusOK, response)
+				case CONTENT_TYPE_XML:
+					mc.XML(http.StatusOK, response)
+				}
 			}
 		}
 	}
