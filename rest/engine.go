@@ -113,7 +113,7 @@ func (s Engine) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	for _, f := range s.before {
-		err = f(request.(*Mcontext), w)
+		err = f(ctx, w)
 		if err != nil {
 			return
 		}
@@ -127,7 +127,7 @@ func (s Engine) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	for _, f := range s.after {
-		err = f(request.(*Mcontext), w)
+		err = f(ctx, w)
 		if err != nil {
 			return
 		}
