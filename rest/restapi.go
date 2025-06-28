@@ -205,9 +205,9 @@ func (c *RestApi) EncodeResponse(ctx context.Context, w http.ResponseWriter, res
 	var err error
 	//w = c.mc.writermem.ResponseWriter
 	mc := ctx.Value(DefaultContextKey).(*Mcontext)
-	if response == nil {
-		response = ""
-	}
+	//if response == nil {
+	//	response = ""
+	//}
 	if mc.useContextWriter && mc.UseRender {
 		err = c.Finish(w, response)
 	} else {
