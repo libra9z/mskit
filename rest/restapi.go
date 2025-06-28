@@ -118,7 +118,7 @@ func (c *RestApi) GetErrorResponse() interface{} {
 需要在nginx上配置
 proxy_set_header Remote_addr $remote_addr;
 */
-func (c *RestApi) DecodeRequest(ctx *context.Context, r *http.Request, w http.ResponseWriter) (request interface{}, err error) {
+func (c *RestApi) DecodeRequest(ctx context.Context, r *http.Request, w http.ResponseWriter) (cc context.Context, request interface{}, err error) {
 
 	req := &Mcontext{}
 	req.reset()
@@ -128,7 +128,7 @@ func (c *RestApi) DecodeRequest(ctx *context.Context, r *http.Request, w http.Re
 
 	if c.Router == nil {
 		fmt.Printf("no router set.\n")
-		return nil, errors.New("no router set.")
+		return nil, nil, errors.New("no router set.")
 	}
 
 	_, req.Params, _ = c.Router.Lookup(r.Method, r.URL.EscapedPath())
@@ -178,10 +178,9 @@ func (c *RestApi) DecodeRequest(ctx *context.Context, r *http.Request, w http.Re
 	mc, _ := c.Prepare(req)
 	mc.writermem.reset(w)
 
-	cr := context.WithValue(*ctx, DefaultContextKey, mc)
-	ctx = &cr
+	cc = context.WithValue(ctx, DefaultContextKey, mc)
 
-	return mc, err
+	return cc, mc, err
 }
 
 func (c *RestApi) Prepare(r *Mcontext) (*Mcontext, error) {

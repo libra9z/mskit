@@ -105,7 +105,7 @@ func (s Engine) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		w = iw
 	}
 
-	request, err := s.dec(ctx, r, w)
+	ctx, request, err := s.dec(ctx, r, w)
 	if err != nil {
 		s.errorHandler.Handle(ctx, err)
 		s.errorEncoder(ctx, err, w)
