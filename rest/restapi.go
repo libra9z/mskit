@@ -118,7 +118,7 @@ func (c *RestApi) GetErrorResponse() interface{} {
 需要在nginx上配置
 proxy_set_header Remote_addr $remote_addr;
 */
-func (c *RestApi) DecodeRequest(ctx context.Context, r *http.Request, w http.ResponseWriter) (request interface{}, err error) {
+func (c *RestApi) DecodeRequest(ctx *context.Context, r *http.Request, w http.ResponseWriter) (request interface{}, err error) {
 
 	req := &Mcontext{}
 	req.reset()
@@ -178,7 +178,8 @@ func (c *RestApi) DecodeRequest(ctx context.Context, r *http.Request, w http.Res
 	mc, _ := c.Prepare(req)
 	mc.writermem.reset(w)
 
-	ctx = context.WithValue(ctx, DefaultContextKey, mc)
+	cr := context.WithValue(*ctx, DefaultContextKey, mc)
+	ctx = &cr
 
 	return mc, err
 }

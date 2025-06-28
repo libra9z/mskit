@@ -57,7 +57,7 @@ type RestService interface {
 	//response relate interface
 	SetRouter(router *httprouter.Router)
 	GetErrorResponse() interface{}
-	DecodeRequest(context.Context, *http.Request, http.ResponseWriter) (request interface{}, err error)
+	DecodeRequest(*context.Context, *http.Request, http.ResponseWriter) (request interface{}, err error)
 	EncodeResponse(context.Context, http.ResponseWriter, interface{}) error
 	ErrorEncoder(context.Context, error, http.ResponseWriter)
 }
